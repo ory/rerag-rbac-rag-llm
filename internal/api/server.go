@@ -1,28 +1,44 @@
 package api
 
 import (
+	"cmp"
 	"encoding/json"
-	"llm-rag-poc/internal/embeddings"
-	"llm-rag-poc/internal/llm"
+	"llm-rag-poc/internal/auth"
 	"llm-rag-poc/internal/models"
+	"llm-rag-poc/internal/permissions"
 	"llm-rag-poc/internal/storage"
 	"log"
 	"net/http"
+
+	"github.com/ory/herodot"
 )
+
+// Interfaces for dependency injection
+type EmbedderInterface interface {
+	GetEmbedding(text string) ([]float32, error)
+}
+
+type LLMInterface interface {
+	Generate(question string, documents []models.Document) (string, error)
+}
 
 type Server struct {
 	mux         *http.ServeMux
-	embedder    *embeddings.Embedder
+	embedder    EmbedderInterface
 	vectorStore storage.VectorStore
-	llmClient   *llm.OllamaClient
+	llmClient   LLMInterface
+	permService permissions.PermissionChecker
+	writer      *herodot.JSONWriter
 }
 
-func NewServer(embedder *embeddings.Embedder, vectorStore storage.VectorStore, llmClient *llm.OllamaClient) *Server {
+func NewServer(embedder EmbedderInterface, vectorStore storage.VectorStore, llmClient LLMInterface, permService permissions.PermissionChecker) *Server {
 	s := &Server{
 		mux:         http.NewServeMux(),
 		embedder:    embedder,
 		vectorStore: vectorStore,
 		llmClient:   llmClient,
+		permService: permService,
+		writer:      herodot.NewJSONWriter(nil),
 	}
 
 	s.setupRoutes()
@@ -31,8 +47,9 @@ func NewServer(embedder *embeddings.Embedder, vectorStore storage.VectorStore, l
 
 func (s *Server) setupRoutes() {
 	s.mux.HandleFunc("/documents", s.handleDocuments)
-	s.mux.HandleFunc("/query", s.queryDocuments)
+	s.mux.Handle("/query", auth.AuthMiddleware(http.HandlerFunc(s.queryDocuments)))
 	s.mux.HandleFunc("/health", s.healthCheck)
+	s.mux.Handle("/permissions", auth.AuthMiddleware(http.HandlerFunc(s.handlePermissions)))
 }
 
 func (s *Server) Run(addr string) error {
@@ -54,40 +71,47 @@ func (s *Server) handleDocuments(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) addDocument(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	
+
 	var doc models.Document
 	if err := json.NewDecoder(r.Body).Decode(&doc); err != nil {
-		http.Error(w, `{"error": "Invalid request body"}`, http.StatusBadRequest)
+		s.writer.WriteError(w, r, herodot.ErrBadRequest.WithReason("Invalid request body"))
 		return
 	}
 
 	embedding, err := s.embedder.GetEmbedding(doc.Content)
 	if err != nil {
-		http.Error(w, `{"error": "Failed to generate embedding"}`, http.StatusInternalServerError)
+		s.writer.WriteError(w, r, herodot.ErrInternalServerError.WithReason("Failed to generate embedding"))
 		return
 	}
 
 	doc.Embedding = embedding
 	if err := s.vectorStore.AddDocument(&doc); err != nil {
-		http.Error(w, `{"error": "Failed to store document"}`, http.StatusInternalServerError)
+		s.writer.WriteError(w, r, herodot.ErrInternalServerError.WithReason("Failed to store document"))
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]string{
-		"id":      doc.ID,
-		"message": "Document added successfully",
-	})
+	response := &models.DocumentResponse{
+		ID:      doc.ID.String(),
+		Message: "Document added successfully",
+	}
+	s.writer.WriteCreated(w, r, "", response)
 }
 
 func (s *Server) listDocuments(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	
-	docs := s.vectorStore.GetAllDocuments()
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"documents": docs,
-		"count":     len(docs),
-	})
+
+	username := auth.GetUserFromContext(r.Context())
+	filter := func(doc *models.Document) bool {
+		return s.permService.CanAccessDocument(username, doc)
+	}
+
+	docs := s.vectorStore.GetFilteredDocuments(filter)
+	response := &models.DocumentListResponse{
+		Documents: docs,
+		Count:     len(docs),
+		User:      username,
+	}
+	s.writer.Write(w, r, response)
 }
 
 func (s *Server) queryDocuments(w http.ResponseWriter, r *http.Request) {
@@ -95,47 +119,43 @@ func (s *Server) queryDocuments(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error": "Method not allowed"}`, http.StatusMethodNotAllowed)
 		return
 	}
-	
-	w.Header().Set("Content-Type", "application/json")
-	
+
 	var req models.QueryRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, `{"error": "Invalid request body"}`, http.StatusBadRequest)
+		s.writer.WriteError(w, r, herodot.ErrBadRequest.WithReason("Invalid request body"))
 		return
 	}
 
-	if req.TopK == 0 {
-		req.TopK = 3
-	}
+	req.TopK = cmp.Or(req.TopK, 3)
 
 	questionEmbedding, err := s.embedder.GetEmbedding(req.Question)
 	if err != nil {
-		http.Error(w, `{"error": "Failed to generate question embedding"}`, http.StatusInternalServerError)
+		s.writer.WriteError(w, r, herodot.ErrInternalServerError.WithReason("Failed to generate question embedding"))
 		return
 	}
 
-	relevantDocs, err := s.vectorStore.SearchSimilar(questionEmbedding, req.TopK)
+	username := auth.GetUserFromContext(r.Context())
+	filter := func(doc *models.Document) bool {
+		return s.permService.CanAccessDocument(username, doc)
+	}
+
+	relevantDocs, err := s.vectorStore.SearchSimilarWithFilter(questionEmbedding, req.TopK, filter)
 	if err != nil {
-		http.Error(w, `{"error": "Failed to search documents"}`, http.StatusInternalServerError)
+		s.writer.WriteError(w, r, herodot.ErrInternalServerError.WithReason("Failed to search documents"))
 		return
 	}
 
 	answer, err := s.llmClient.Generate(req.Question, relevantDocs)
 	if err != nil {
-		http.Error(w, `{"error": "Failed to generate answer"}`, http.StatusInternalServerError)
+		s.writer.WriteError(w, r, herodot.ErrInternalServerError.WithReason("Failed to generate answer"))
 		return
 	}
 
-	response := models.QueryResponse{
+	response := &models.QueryResponse{
 		Answer:  answer,
-		Sources: make([]models.Document, len(relevantDocs)),
+		Sources: relevantDocs,
 	}
-
-	for i, doc := range relevantDocs {
-		response.Sources[i] = *doc
-	}
-
-	json.NewEncoder(w).Encode(response)
+	s.writer.Write(w, r, response)
 }
 
 func (s *Server) healthCheck(w http.ResponseWriter, r *http.Request) {
@@ -143,8 +163,24 @@ func (s *Server) healthCheck(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error": "Method not allowed"}`, http.StatusMethodNotAllowed)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "healthy"})
+	
+	response := &models.HealthResponse{Status: "healthy"}
+	s.writer.Write(w, r, response)
+}
+
+func (s *Server) handlePermissions(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, `{"error": "Method not allowed"}`, http.StatusMethodNotAllowed)
+		return
+	}
+
+	username := auth.GetUserFromContext(r.Context())
+	permissions := s.permService.GetUserPermissions(username)
+	response := &models.PermissionsResponse{
+		User:        username,
+		Permissions: permissions,
+	}
+	s.writer.Write(w, r, response)
 }
 
 func loggingMiddleware(next http.Handler) http.Handler {

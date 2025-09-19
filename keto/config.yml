@@ -1,0 +1,23 @@
+version: v0.14.0
+
+dsn: sqlite://./data/keto.db?_fk=true&cache=shared
+
+serve:
+  read:
+    host: 127.0.0.1
+    port: 4466
+    cors:
+      enabled: false
+  write:
+    host: 127.0.0.1
+    port: 4467
+    cors:
+      enabled: false
+
+log:
+  level: info
+  format: text
+
+namespaces:
+  - name: documents
+    id: 0

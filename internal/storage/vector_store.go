@@ -5,42 +5,50 @@ import (
 	"math"
 	"sort"
 	"sync"
+
+	"github.com/google/uuid"
 )
 
 type VectorStore interface {
 	AddDocument(doc *models.Document) error
-	SearchSimilar(embedding []float32, topK int) ([]*models.Document, error)
-	GetAllDocuments() []*models.Document
+	SearchSimilar(embedding []float32, topK int) ([]models.Document, error)
+	SearchSimilarWithFilter(embedding []float32, topK int, filter func(*models.Document) bool) ([]models.Document, error)
+	GetAllDocuments() []models.Document
+	GetFilteredDocuments(filter func(*models.Document) bool) []models.Document
 }
 
 type MemoryVectorStore struct {
-	documents []*models.Document
+	documents []models.Document
 	mu        sync.RWMutex
 }
 
 func NewMemoryVectorStore() *MemoryVectorStore {
 	return &MemoryVectorStore{
-		documents: make([]*models.Document, 0),
+		documents: make([]models.Document, 0),
 	}
 }
 
-func (m *MemoryVectorStore) AddDocument(doc *models.Document) error {
+func (m *MemoryVectorStore) AddDocument(doc *models.Document) (err error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.documents = append(m.documents, doc)
+	doc.ID, err = uuid.NewUUID()
+	if err != nil {
+		return err
+	}
+	m.documents = append(m.documents, *doc)
 	return nil
 }
 
-func (m *MemoryVectorStore) SearchSimilar(embedding []float32, topK int) ([]*models.Document, error) {
+func (m *MemoryVectorStore) SearchSimilar(embedding []float32, topK int) ([]models.Document, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
 	if len(m.documents) == 0 {
-		return []*models.Document{}, nil
+		return []models.Document{}, nil
 	}
 
 	type scoredDoc struct {
-		doc   *models.Document
+		doc   models.Document
 		score float32
 	}
 
@@ -58,7 +66,7 @@ func (m *MemoryVectorStore) SearchSimilar(embedding []float32, topK int) ([]*mod
 		topK = len(scores)
 	}
 
-	results := make([]*models.Document, topK)
+	results := make([]models.Document, topK)
 	for i := 0; i < topK; i++ {
 		results[i] = scores[i].doc
 	}
@@ -66,10 +74,67 @@ func (m *MemoryVectorStore) SearchSimilar(embedding []float32, topK int) ([]*mod
 	return results, nil
 }
 
-func (m *MemoryVectorStore) GetAllDocuments() []*models.Document {
+func (m *MemoryVectorStore) SearchSimilarWithFilter(embedding []float32, topK int, filter func(*models.Document) bool) ([]models.Document, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	if len(m.documents) == 0 {
+		return []models.Document{}, nil
+	}
+
+	type scoredDoc struct {
+		doc   models.Document
+		score float32
+	}
+
+	scores := make([]scoredDoc, 0)
+	for i := range m.documents {
+		doc := m.documents[i]
+		if filter != nil && !filter(&doc) {
+			continue
+		}
+		similarity := cosineSimilarity(embedding, doc.Embedding)
+		scores = append(scores, scoredDoc{doc: doc, score: similarity})
+	}
+
+	sort.Slice(scores, func(i, j int) bool {
+		return scores[i].score > scores[j].score
+	})
+
+	if topK > len(scores) {
+		topK = len(scores)
+	}
+
+	results := make([]models.Document, topK)
+	for i := 0; i < topK; i++ {
+		results[i] = scores[i].doc
+	}
+
+	return results, nil
+}
+
+func (m *MemoryVectorStore) GetAllDocuments() []models.Document {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return m.documents
+}
+
+func (m *MemoryVectorStore) GetFilteredDocuments(filter func(*models.Document) bool) []models.Document {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	if filter == nil {
+		return m.documents
+	}
+
+	filtered := make([]models.Document, 0)
+	for i := range m.documents {
+		doc := m.documents[i]
+		if filter(&doc) {
+			filtered = append(filtered, doc)
+		}
+	}
+	return filtered
 }
 
 func cosineSimilarity(a, b []float32) float32 {

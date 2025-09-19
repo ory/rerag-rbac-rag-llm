@@ -1,0 +1,18 @@
+// Permission model for tax document access control
+// This defines the relationship between users and documents
+
+class User
+  implements Subject
+  {
+    // A user can view documents they have permission to access
+  }
+
+class Document
+  implements Resource
+  {
+    // A document can be viewed by authorized users
+    relation viewers: User[]
+    
+    // Permission: a user can view a document if they are in the viewers relation
+    permission view = viewers
+  }

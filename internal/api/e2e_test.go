@@ -1,0 +1,473 @@
+package api
+
+import (
+	"bytes"
+	"encoding/json"
+	"llm-rag-poc/internal/models"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
+	"github.com/google/uuid"
+)
+
+// E2E/Functional Tests - Test the full API flow with auth middleware
+
+func TestE2E_DocumentWorkflow(t *testing.T) {
+	server, _, _, _, _ := createTestServer()
+
+	// Step 1: Add a document (no auth required)
+	doc := models.Document{
+		Title:   "E2E Test Document",
+		Content: "This is comprehensive test content for end-to-end testing",
+		Metadata: map[string]interface{}{
+			"category":  "test",
+			"sensitive": true,
+		},
+	}
+
+	body, _ := json.Marshal(doc)
+	req := httptest.NewRequest(http.MethodPost, "/documents", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	server.mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusCreated {
+		t.Fatalf("Failed to add document: status %d", w.Code)
+	}
+
+	var addResponse map[string]string
+	json.Unmarshal(w.Body.Bytes(), &addResponse)
+	docID := addResponse["id"]
+
+	// Step 2: List documents with auth - should fail without auth
+	req = httptest.NewRequest(http.MethodGet, "/documents", nil)
+	w = httptest.NewRecorder()
+
+	server.mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("Expected unauthorized without auth header, got %d", w.Code)
+	}
+
+	// Step 3: List documents with valid auth  
+	req = createAuthenticatedRequest(http.MethodGet, "/documents", nil, "testuser")
+	w = httptest.NewRecorder()
+
+	server.listDocuments(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected success with auth, got %d", w.Code)
+	}
+
+	var listResponse map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &listResponse)
+
+	if listResponse["user"] != "testuser" {
+		t.Errorf("Expected user 'testuser', got %v", listResponse["user"])
+	}
+
+	documents := listResponse["documents"].([]interface{})
+	if len(documents) != 1 {
+		t.Errorf("Expected 1 document, got %d", len(documents))
+	}
+
+	// Verify the document was added with correct ID
+	docData := documents[0].(map[string]interface{})
+	if docData["id"] != docID {
+		t.Errorf("Expected document ID %s, got %v", docID, docData["id"])
+	}
+}
+
+func TestE2E_QueryWorkflow(t *testing.T) {
+	server, embedder, _, llmClient, _ := createTestServer()
+
+	// Setup: Add test documents
+	doc1 := models.Document{
+		Title:   "Financial Report",
+		Content: "The company made a profit of $100,000 this year",
+		Metadata: map[string]interface{}{"type": "financial"},
+	}
+	doc2 := models.Document{
+		Title:   "HR Document", 
+		Content: "Employee satisfaction scores are high at 95%",
+		Metadata: map[string]interface{}{"type": "hr"},
+	}
+
+	// Add documents
+	for _, doc := range []models.Document{doc1, doc2} {
+		body, _ := json.Marshal(doc)
+		req := httptest.NewRequest(http.MethodPost, "/documents", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		server.mux.ServeHTTP(w, req)
+
+		if w.Code != http.StatusCreated {
+			t.Fatalf("Failed to add document: %v", w.Body.String())
+		}
+	}
+
+	// Setup mock responses
+	question := "What was the company's profit?"
+	embedder.SetEmbedding(question, []float32{0.1, 0.2, 0.3})
+	llmClient.SetResponse(question, "Based on the financial report, the company made a profit of $100,000.")
+
+	// Test query without auth - should fail
+	queryReq := models.QueryRequest{
+		Question: question,
+		TopK:     3,
+	}
+
+	body, _ := json.Marshal(queryReq)
+	req := httptest.NewRequest(http.MethodPost, "/query", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	server.mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("Expected unauthorized without auth, got %d", w.Code)
+	}
+
+	// Test query with invalid auth format
+	req = httptest.NewRequest(http.MethodPost, "/query", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Invalid format")
+	w = httptest.NewRecorder()
+
+	server.mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("Expected unauthorized with invalid auth, got %d", w.Code)
+	}
+
+	// Test successful query with auth
+	req = httptest.NewRequest(http.MethodPost, "/query", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer alice")
+	w = httptest.NewRecorder()
+
+	server.mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected success with valid auth, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var queryResponse models.QueryResponse
+	json.Unmarshal(w.Body.Bytes(), &queryResponse)
+
+	if queryResponse.Answer != "Based on the financial report, the company made a profit of $100,000." {
+		t.Errorf("Expected specific answer, got: %s", queryResponse.Answer)
+	}
+
+	if len(queryResponse.Sources) == 0 {
+		t.Error("Expected at least one source document")
+	}
+}
+
+func TestE2E_PermissionWorkflow(t *testing.T) {
+	server, _, vectorStore, _, permService := createTestServer()
+
+	// Setup documents with different access levels
+	doc1 := &models.Document{
+		ID:      uuid.New(),
+		Title:   "Public Document",
+		Content: "This is public information",
+	}
+	doc2 := &models.Document{
+		ID:      uuid.New(),
+		Title:   "Private Document",
+		Content: "This is private information",
+	}
+	doc3 := &models.Document{
+		ID:      uuid.New(),
+		Title:   "Admin Only Document",
+		Content: "This is admin-only information",
+	}
+
+	vectorStore.AddDocument(doc1)
+	vectorStore.AddDocument(doc2)
+	vectorStore.AddDocument(doc3)
+
+	// Set up permissions:
+	// - alice can access public and private docs
+	// - bob can only access public docs
+	// - admin can access all docs
+
+	// Alice permissions
+	permService.SetDocumentAccess("alice", doc1.ID.String(), true)
+	permService.SetDocumentAccess("alice", doc2.ID.String(), true)
+	permService.SetDocumentAccess("alice", doc3.ID.String(), false)
+	permService.SetUserPermissions("alice", []string{"documents:view", "documents:query"})
+
+	// Bob permissions
+	permService.SetDocumentAccess("bob", doc1.ID.String(), true)
+	permService.SetDocumentAccess("bob", doc2.ID.String(), false)
+	permService.SetDocumentAccess("bob", doc3.ID.String(), false)
+	permService.SetUserPermissions("bob", []string{"documents:view"})
+
+	// Admin permissions
+	permService.SetDocumentAccess("admin", doc1.ID.String(), true)
+	permService.SetDocumentAccess("admin", doc2.ID.String(), true)
+	permService.SetDocumentAccess("admin", doc3.ID.String(), true)
+	permService.SetUserPermissions("admin", []string{"documents:view", "documents:query", "documents:admin"})
+
+	// Test Alice's access
+	req := httptest.NewRequest(http.MethodGet, "/documents", nil)
+	req.Header.Set("Authorization", "Bearer alice")
+	w := httptest.NewRecorder()
+
+	server.mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Alice request failed: %d", w.Code)
+	}
+
+	var aliceResponse map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &aliceResponse)
+
+	aliceDocs := aliceResponse["documents"].([]interface{})
+	if len(aliceDocs) != 2 {
+		t.Errorf("Alice should see 2 documents, got %d", len(aliceDocs))
+	}
+
+	// Test Bob's access
+	req = httptest.NewRequest(http.MethodGet, "/documents", nil)
+	req.Header.Set("Authorization", "Bearer bob")
+	w = httptest.NewRecorder()
+
+	server.mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Bob request failed: %d", w.Code)
+	}
+
+	var bobResponse map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &bobResponse)
+
+	bobDocs := bobResponse["documents"].([]interface{})
+	if len(bobDocs) != 1 {
+		t.Errorf("Bob should see 1 document, got %d", len(bobDocs))
+	}
+
+	// Test Admin's access
+	req = httptest.NewRequest(http.MethodGet, "/documents", nil)
+	req.Header.Set("Authorization", "Bearer admin")
+	w = httptest.NewRecorder()
+
+	server.mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Admin request failed: %d", w.Code)
+	}
+
+	var adminResponse map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &adminResponse)
+
+	adminDocs := adminResponse["documents"].([]interface{})
+	if len(adminDocs) != 3 {
+		t.Errorf("Admin should see 3 documents, got %d", len(adminDocs))
+	}
+
+	// Test permissions endpoint
+	req = httptest.NewRequest(http.MethodGet, "/permissions", nil)
+	req.Header.Set("Authorization", "Bearer alice")
+	w = httptest.NewRecorder()
+
+	server.mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Permissions request failed: %d", w.Code)
+	}
+
+	var permResponse map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &permResponse)
+
+	permissions := permResponse["permissions"].([]interface{})
+	if len(permissions) != 2 {
+		t.Errorf("Alice should have 2 permissions, got %d", len(permissions))
+	}
+}
+
+func TestE2E_ErrorHandling(t *testing.T) {
+	server, embedder, vectorStore, llmClient, _ := createTestServer()
+
+	// Test 1: Service failures during query
+	embedder.SetShouldFail(true)
+
+	queryReq := models.QueryRequest{
+		Question: "Test question",
+		TopK:     3,
+	}
+
+	body, _ := json.Marshal(queryReq)
+	req := httptest.NewRequest(http.MethodPost, "/query", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer testuser")
+	w := httptest.NewRecorder()
+
+	server.mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("Expected 500 for embedding failure, got %d", w.Code)
+	}
+
+	// Reset and test vector store failure
+	embedder.SetShouldFail(false)
+	vectorStore.SetSearchError(true)
+
+	w = httptest.NewRecorder()
+	server.mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("Expected 500 for search failure, got %d", w.Code)
+	}
+
+	// Reset and test LLM failure
+	vectorStore.SetSearchError(false)
+	llmClient.SetShouldFail(true)
+
+	w = httptest.NewRecorder()
+	server.mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("Expected 500 for LLM failure, got %d", w.Code)
+	}
+}
+
+func TestE2E_ConcurrentAccess(t *testing.T) {
+	server, _, _, _, _ := createTestServer()
+
+	// Add a document first
+	doc := models.Document{
+		Title:   "Concurrent Test Document",
+		Content: "This is for testing concurrent access",
+	}
+
+	body, _ := json.Marshal(doc)
+	req := httptest.NewRequest(http.MethodPost, "/documents", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	server.mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusCreated {
+		t.Fatalf("Failed to add document for concurrent test: %d", w.Code)
+	}
+
+	// Test concurrent requests
+	done := make(chan bool, 10)
+	errors := make(chan error, 10)
+
+	for i := 0; i < 10; i++ {
+		go func(userID int) {
+			req := httptest.NewRequest(http.MethodGet, "/documents", nil)
+			req.Header.Set("Authorization", "Bearer user"+string(rune(userID)))
+			w := httptest.NewRecorder()
+
+			server.mux.ServeHTTP(w, req)
+
+			if w.Code != http.StatusOK {
+				errors <- &ConcurrentTestError{UserID: userID, StatusCode: w.Code}
+				return
+			}
+
+			done <- true
+		}(i)
+	}
+
+	// Wait for all requests to complete
+	successCount := 0
+	errorCount := 0
+
+	timeout := time.NewTimer(5 * time.Second)
+	defer timeout.Stop()
+
+	for i := 0; i < 10; i++ {
+		select {
+		case <-done:
+			successCount++
+		case err := <-errors:
+			t.Logf("Concurrent request error: %v", err)
+			errorCount++
+		case <-timeout.C:
+			t.Fatal("Timeout waiting for concurrent requests")
+		}
+	}
+
+	if successCount != 10 {
+		t.Errorf("Expected 10 successful requests, got %d (errors: %d)", successCount, errorCount)
+	}
+}
+
+func TestE2E_HealthEndpoint(t *testing.T) {
+	server, _, _, _, _ := createTestServer()
+
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	w := httptest.NewRecorder()
+
+	server.mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Health check failed: %d", w.Code)
+	}
+
+	var response map[string]string
+	json.Unmarshal(w.Body.Bytes(), &response)
+
+	if response["status"] != "healthy" {
+		t.Errorf("Expected healthy status, got %s", response["status"])
+	}
+}
+
+func TestE2E_InvalidEndpoints(t *testing.T) {
+	server, _, _, _, _ := createTestServer()
+
+	// Test non-existent endpoint
+	req := httptest.NewRequest(http.MethodGet, "/nonexistent", nil)
+	w := httptest.NewRecorder()
+
+	server.mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Errorf("Expected 404 for non-existent endpoint, got %d", w.Code)
+	}
+
+	// Test invalid methods on existing endpoints
+	testCases := []struct {
+		method   string
+		endpoint string
+		expected int
+	}{
+		{http.MethodPatch, "/health", http.StatusMethodNotAllowed},
+		{http.MethodDelete, "/documents", http.StatusMethodNotAllowed},
+		{http.MethodPut, "/query", http.StatusMethodNotAllowed},
+		{http.MethodPost, "/permissions", http.StatusMethodNotAllowed},
+	}
+
+	for _, tc := range testCases {
+		req := httptest.NewRequest(tc.method, tc.endpoint, nil)
+		if tc.endpoint == "/query" || tc.endpoint == "/permissions" {
+			req.Header.Set("Authorization", "Bearer testuser")
+		}
+		w := httptest.NewRecorder()
+
+		server.mux.ServeHTTP(w, req)
+
+		if w.Code != tc.expected {
+			t.Errorf("Expected %d for %s %s, got %d", tc.expected, tc.method, tc.endpoint, w.Code)
+		}
+	}
+}
+
+// Helper error type for concurrent testing
+type ConcurrentTestError struct {
+	UserID     int
+	StatusCode int
+}
+
+func (e *ConcurrentTestError) Error() string {
+	return "Concurrent test error"
+}

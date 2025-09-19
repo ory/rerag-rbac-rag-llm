@@ -1,0 +1,50 @@
+[
+  {
+    "namespace": "documents",
+    "object": "john-doe:2022",
+    "relation": "viewer",
+    "subject_id": "alice"
+  },
+  {
+    "namespace": "documents", 
+    "object": "john-doe:2023",
+    "relation": "viewer",
+    "subject_id": "alice"
+  },
+  {
+    "namespace": "documents",
+    "object": "abc-corporation:2023", 
+    "relation": "viewer",
+    "subject_id": "bob"
+  },
+  {
+    "namespace": "documents",
+    "object": "john-doe:2022",
+    "relation": "viewer", 
+    "subject_id": "peter"
+  },
+  {
+    "namespace": "documents",
+    "object": "john-doe:2023",
+    "relation": "viewer",
+    "subject_id": "peter"
+  },
+  {
+    "namespace": "documents",
+    "object": "jane-smith:2023",
+    "relation": "viewer",
+    "subject_id": "peter"
+  },
+  {
+    "namespace": "documents",
+    "object": "abc-corporation:2023",
+    "relation": "viewer",
+    "subject_id": "peter"
+  },
+  {
+    "namespace": "documents", 
+    "object": "michael-johnson:2023",
+    "relation": "viewer",
+    "subject_id": "peter"
+  }
+]

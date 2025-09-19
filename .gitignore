@@ -1,2 +1,6 @@
+server
 .claude
-.idea
+*.log
+data/
+.bin/
+./keto
