@@ -102,7 +102,7 @@ clean:
 
 # Full reset
 reset: clean
-	rm -rf .bin/ data/
+	rm -rf .bin/ data/ vector_store.db
 	@echo "Full reset complete"
 
 # Install development tools

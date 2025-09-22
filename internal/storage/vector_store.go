@@ -1,3 +1,4 @@
+// Package storage provides vector storage implementations for document embeddings.
 package storage
 
 import (

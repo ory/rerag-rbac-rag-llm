@@ -1,0 +1,28 @@
+# golangci-lint configuration for LLM RAG ReBAC OSS project
+
+linters:
+  enable:
+    - revive
+    - staticcheck
+    - gosec
+    - gocritic
+    - funlen
+    - gocognit
+    - gocyclo
+    - nestif
+    - dupl
+    - goconst
+    - misspell
+    - unparam
+    - ineffassign
+    - unused
+    - errcheck
+    - govet
+  exclusions:
+    rules:
+      - path: '_test\.go'
+        linters:
+          - gosec
+          - dupl
+
+version: "2"
