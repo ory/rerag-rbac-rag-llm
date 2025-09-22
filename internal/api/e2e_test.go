@@ -39,7 +39,9 @@ func TestE2E_DocumentWorkflow(t *testing.T) {
 	}
 
 	var addResponse map[string]string
-	json.Unmarshal(w.Body.Bytes(), &addResponse)
+	if err := json.Unmarshal(w.Body.Bytes(), &addResponse); err != nil {
+		t.Fatalf("Failed to unmarshal response: %v", err)
+	}
 	docID := addResponse["id"]
 
 	// Step 2: List documents with auth - should fail without auth
@@ -53,17 +55,20 @@ func TestE2E_DocumentWorkflow(t *testing.T) {
 	}
 
 	// Step 3: List documents with valid auth
-	req = createAuthenticatedRequest(http.MethodGet, "/documents", nil, "testuser")
+	req = httptest.NewRequest(http.MethodGet, "/documents", nil)
+	req.Header.Set("Authorization", "Bearer testuser")
 	w = httptest.NewRecorder()
 
-	server.listDocuments(w, req)
+	server.mux.ServeHTTP(w, req)
 
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected success with auth, got %d", w.Code)
 	}
 
 	var listResponse map[string]interface{}
-	json.Unmarshal(w.Body.Bytes(), &listResponse)
+	if err := json.Unmarshal(w.Body.Bytes(), &listResponse); err != nil {
+		t.Fatalf("Failed to unmarshal list response: %v", err)
+	}
 
 	if listResponse["user"] != "testuser" {
 		t.Errorf("Expected user 'testuser', got %v", listResponse["user"])
@@ -156,7 +161,9 @@ func TestE2E_QueryWorkflow(t *testing.T) {
 	}
 
 	var queryResponse models.QueryResponse
-	json.Unmarshal(w.Body.Bytes(), &queryResponse)
+	if err := json.Unmarshal(w.Body.Bytes(), &queryResponse); err != nil {
+		t.Fatalf("Failed to unmarshal query response: %v", err)
+	}
 
 	if queryResponse.Answer != "Based on the financial report, the company made a profit of $100,000." {
 		t.Errorf("Expected specific answer, got: %s", queryResponse.Answer)
@@ -187,9 +194,15 @@ func TestE2E_PermissionWorkflow(t *testing.T) {
 		Content: "This is admin-only information",
 	}
 
-	vectorStore.AddDocument(doc1)
-	vectorStore.AddDocument(doc2)
-	vectorStore.AddDocument(doc3)
+	if err := vectorStore.AddDocument(doc1); err != nil {
+		t.Fatalf("Failed to add doc1: %v", err)
+	}
+	if err := vectorStore.AddDocument(doc2); err != nil {
+		t.Fatalf("Failed to add doc2: %v", err)
+	}
+	if err := vectorStore.AddDocument(doc3); err != nil {
+		t.Fatalf("Failed to add doc3: %v", err)
+	}
 
 	// Set up permissions:
 	// - alice can access public and private docs
@@ -226,7 +239,9 @@ func TestE2E_PermissionWorkflow(t *testing.T) {
 	}
 
 	var aliceResponse map[string]interface{}
-	json.Unmarshal(w.Body.Bytes(), &aliceResponse)
+	if err := json.Unmarshal(w.Body.Bytes(), &aliceResponse); err != nil {
+		t.Fatalf("Failed to unmarshal alice response: %v", err)
+	}
 
 	aliceDocs := aliceResponse["documents"].([]interface{})
 	if len(aliceDocs) != 2 {
@@ -245,7 +260,9 @@ func TestE2E_PermissionWorkflow(t *testing.T) {
 	}
 
 	var bobResponse map[string]interface{}
-	json.Unmarshal(w.Body.Bytes(), &bobResponse)
+	if err := json.Unmarshal(w.Body.Bytes(), &bobResponse); err != nil {
+		t.Fatalf("Failed to unmarshal bob response: %v", err)
+	}
 
 	bobDocs := bobResponse["documents"].([]interface{})
 	if len(bobDocs) != 1 {
@@ -264,7 +281,9 @@ func TestE2E_PermissionWorkflow(t *testing.T) {
 	}
 
 	var adminResponse map[string]interface{}
-	json.Unmarshal(w.Body.Bytes(), &adminResponse)
+	if err := json.Unmarshal(w.Body.Bytes(), &adminResponse); err != nil {
+		t.Fatalf("Failed to unmarshal admin response: %v", err)
+	}
 
 	adminDocs := adminResponse["documents"].([]interface{})
 	if len(adminDocs) != 3 {
@@ -283,7 +302,9 @@ func TestE2E_PermissionWorkflow(t *testing.T) {
 	}
 
 	var permResponse map[string]interface{}
-	json.Unmarshal(w.Body.Bytes(), &permResponse)
+	if err := json.Unmarshal(w.Body.Bytes(), &permResponse); err != nil {
+		t.Fatalf("Failed to unmarshal perm response: %v", err)
+	}
 
 	permissions := permResponse["permissions"].([]interface{})
 	if len(permissions) != 2 {
@@ -318,6 +339,10 @@ func TestE2E_ErrorHandling(t *testing.T) {
 	embedder.SetShouldFail(false)
 	vectorStore.SetSearchError(true)
 
+	body, _ = json.Marshal(queryReq)
+	req = httptest.NewRequest(http.MethodPost, "/query", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer testuser")
 	w = httptest.NewRecorder()
 	server.mux.ServeHTTP(w, req)
 
@@ -329,6 +354,10 @@ func TestE2E_ErrorHandling(t *testing.T) {
 	vectorStore.SetSearchError(false)
 	llmClient.SetShouldFail(true)
 
+	body, _ = json.Marshal(queryReq)
+	req = httptest.NewRequest(http.MethodPost, "/query", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer testuser")
 	w = httptest.NewRecorder()
 	server.mux.ServeHTTP(w, req)
 
@@ -415,7 +444,9 @@ func TestE2E_HealthEndpoint(t *testing.T) {
 	}
 
 	var response map[string]string
-	json.Unmarshal(w.Body.Bytes(), &response)
+	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+		t.Fatalf("Failed to unmarshal response: %v", err)
+	}
 
 	if response["status"] != "healthy" {
 		t.Errorf("Expected healthy status, got %s", response["status"])
