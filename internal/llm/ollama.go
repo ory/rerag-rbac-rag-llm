@@ -10,11 +10,13 @@ import (
 	"strings"
 )
 
+// OllamaClient provides interaction with Ollama LLM service
 type OllamaClient struct {
 	baseURL string
 	model   string
 }
 
+// NewOllamaClient creates a new client for interacting with Ollama
 func NewOllamaClient(baseURL, model string) *OllamaClient {
 	return &OllamaClient{
 		baseURL: baseURL,
@@ -22,6 +24,7 @@ func NewOllamaClient(baseURL, model string) *OllamaClient {
 	}
 }
 
+// Generate produces an answer based on the question and context documents
 func (o *OllamaClient) Generate(question string, context []models.Document) (string, error) {
 	prompt := o.buildPrompt(question, context)
 
@@ -40,7 +43,7 @@ func (o *OllamaClient) Generate(question string, context []models.Document) (str
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -66,7 +69,7 @@ func (o *OllamaClient) buildPrompt(question string, documents []models.Document)
 	for i, doc := range documents {
 		contextStr.WriteString(fmt.Sprintf("\nDocument %d: %s\n", i+1, doc.Title))
 		contextStr.WriteString(fmt.Sprintf("Content: %s\n", doc.Content))
-		if doc.Metadata != nil && len(doc.Metadata) > 0 {
+		if len(doc.Metadata) > 0 {
 			contextStr.WriteString("Metadata: ")
 			for k, v := range doc.Metadata {
 				contextStr.WriteString(fmt.Sprintf("%s: %v, ", k, v))

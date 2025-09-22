@@ -8,11 +8,13 @@ import (
 	"net/http"
 )
 
+// Embedder provides text embedding capabilities using Ollama
 type Embedder struct {
 	ollamaURL string
 	model     string
 }
 
+// NewEmbedder creates a new Embedder instance with default configuration
 func NewEmbedder() *Embedder {
 	return &Embedder{
 		ollamaURL: "http://localhost:11434",
@@ -20,6 +22,7 @@ func NewEmbedder() *Embedder {
 	}
 }
 
+// GetEmbedding generates a vector embedding for the given text
 func (e *Embedder) GetEmbedding(text string) ([]float32, error) {
 	reqBody := map[string]interface{}{
 		"model":  e.model,
@@ -35,7 +38,7 @@ func (e *Embedder) GetEmbedding(text string) ([]float32, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

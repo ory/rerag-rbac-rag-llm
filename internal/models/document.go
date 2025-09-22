@@ -2,6 +2,7 @@ package models
 
 import "github.com/google/uuid"
 
+// Document represents a document in the system with content and metadata
 type Document struct {
 	ID        uuid.UUID              `json:"id"`
 	Title     string                 `json:"title"`
@@ -10,6 +11,7 @@ type Document struct {
 	Embedding []float32              `json:"-"`
 }
 
+// QueryRequest represents a user's query for document search
 type QueryRequest struct {
 	Question string `json:"question" binding:"required"`
 	TopK     int    `json:"top_k"`

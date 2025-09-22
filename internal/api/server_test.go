@@ -425,8 +425,8 @@ func TestListDocuments(t *testing.T) {
 		Content: "Content 2",
 	}
 
-	vectorStore.AddDocument(doc1)
-	vectorStore.AddDocument(doc2)
+	_ = vectorStore.AddDocument(doc1)
+	_ = vectorStore.AddDocument(doc2)
 
 	// Set permissions - user can access doc1 but not doc2
 	permService.SetDocumentAccess("testuser", doc1.ID.String(), true)
@@ -466,7 +466,7 @@ func TestQueryDocuments(t *testing.T) {
 		Content:   "This contains important information",
 		Embedding: []float32{0.1, 0.2, 0.3},
 	}
-	vectorStore.AddDocument(doc)
+	_ = vectorStore.AddDocument(doc)
 	permService.SetDocumentAccess("testuser", doc.ID.String(), true)
 
 	// Set up embeddings and LLM response

@@ -100,7 +100,9 @@ graph TD
 
 ### Prerequisites
 
-You need [Go](https://go.dev), curl, [jq](https://jqlang.org), and [tmux](https://github.com/tmux/tmux) installed on a Unix-like system (Linux, macOS). Then:
+You need [Go](https://go.dev), curl, [jq](https://jqlang.org), and
+[tmux](https://github.com/tmux/tmux) installed on a Unix-like system (Linux,
+macOS). Then:
 
 ```bash
 # Install all dependencies automatically
@@ -272,7 +274,7 @@ curl http://localhost:8080/permissions \
 
 ## Security Considerations
 
-- **Authentication**: Currently uses mock tokens (extend with real auth)
+- **Authentication**: Currently uses mock Bearer tokens for simplicity. In production, replace with a proper authentication system like [Ory Hydra](https://www.ory.sh/hydra/) OAuth2/OIDC server, which integrates seamlessly with Keto for complete identity and access management
 - **Transport**: Use HTTPS in production
 - **Storage**: In-memory store (add persistent storage for production)
 - **Secrets**: Never commit real credentials
@@ -288,9 +290,27 @@ curl http://localhost:8080/permissions \
 
 ### Integrate Real Authentication
 
-1. Replace mock auth in `internal/auth/`
-2. Map JWT claims to Keto subjects
-3. Add token validation
+Replace the current mock authentication with a production-ready solution:
+
+1. **Using Ory Hydra** (recommended for complete Ory ecosystem):
+   - Deploy Hydra as OAuth2/OIDC server
+   - Configure JWT token validation in `internal/auth/`
+   - Map JWT claims (sub, email) to Keto subject IDs
+   - Leverage Hydra's built-in consent and login flows
+
+2. **Alternative solutions**:
+   - Auth0, Firebase Auth, or AWS Cognito
+   - Self-hosted solutions like Keycloak
+   - Custom JWT validation with your identity provider
+
+Example Hydra integration:
+```go
+// Replace mock validation with JWT verification
+func validateJWT(tokenString string) (*User, error) {
+    // Verify JWT signature and claims
+    // Extract user ID for Keto permission checks
+}
+```
 
 ### Add Persistent Storage
 

@@ -11,11 +11,13 @@ import (
 	"strings"
 )
 
+// KetoPermissionService implements permission checking using Ory Keto
 type KetoPermissionService struct {
 	readURL  string
 	writeURL string
 }
 
+// NewKetoPermissionService creates a new Keto-based permission service
 func NewKetoPermissionService(readURL, writeURL string) *KetoPermissionService {
 	return &KetoPermissionService{
 		readURL:  readURL,
@@ -23,6 +25,7 @@ func NewKetoPermissionService(readURL, writeURL string) *KetoPermissionService {
 	}
 }
 
+// CanAccessDocument checks if a user can access a specific document
 func (k *KetoPermissionService) CanAccessDocument(username string, doc *models.Document) bool {
 	// Map document to Keto object based on taxpayer and year
 	objectID := k.documentToKetoObject(doc)
@@ -48,14 +51,21 @@ func (k *KetoPermissionService) CanAccessDocument(username string, doc *models.D
 		log.Printf("Error checking permission for user %s on object %s: %v", username, objectID, err)
 		return false
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusOK {
 		var result struct {
 			Allowed bool `json:"allowed"`
 		}
-		body, _ := io.ReadAll(resp.Body)
-		json.Unmarshal(body, &result)
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			log.Printf("Error reading response body: %v", err)
+			return false
+		}
+		if err := json.Unmarshal(body, &result); err != nil {
+			log.Printf("Error unmarshaling response: %v", err)
+			return false
+		}
 		return result.Allowed
 	}
 
@@ -63,6 +73,7 @@ func (k *KetoPermissionService) CanAccessDocument(username string, doc *models.D
 	return false
 }
 
+// FilterDocuments returns only documents the user has permission to access
 func (k *KetoPermissionService) FilterDocuments(username string, docs []*models.Document) []*models.Document {
 	filtered := make([]*models.Document, 0)
 	for _, doc := range docs {
@@ -73,6 +84,7 @@ func (k *KetoPermissionService) FilterDocuments(username string, docs []*models.
 	return filtered
 }
 
+// GetUserPermissions retrieves all permissions for a given user
 func (k *KetoPermissionService) GetUserPermissions(username string) []string {
 	// Build the list URL
 	listURL := fmt.Sprintf("%s/relation-tuples", k.readURL)
@@ -88,7 +100,7 @@ func (k *KetoPermissionService) GetUserPermissions(username string) []string {
 		log.Printf("Error getting permissions for user %s: %v", username, err)
 		return []string{}
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		log.Printf("Keto list relation tuples returned status %d for user %s", resp.StatusCode, username)
@@ -101,10 +113,17 @@ func (k *KetoPermissionService) GetUserPermissions(username string) []string {
 		} `json:"relation_tuples"`
 	}
 
-	body, _ := io.ReadAll(resp.Body)
-	json.Unmarshal(body, &result)
-
 	permissions := make([]string, 0)
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("Error reading response body: %v", err)
+		return permissions
+	}
+	if err := json.Unmarshal(body, &result); err != nil {
+		log.Printf("Error unmarshaling response: %v", err)
+		return permissions
+	}
 	for _, tuple := range result.RelationTuples {
 		permissions = append(permissions, tuple.Object)
 	}
@@ -112,6 +131,7 @@ func (k *KetoPermissionService) GetUserPermissions(username string) []string {
 	return permissions
 }
 
+// AddUserPermission grants a user permission to access documents for a taxpayer
 func (k *KetoPermissionService) AddUserPermission(username string, taxpayer string) {
 	// Convert taxpayer to potential Keto objects and create relation tuples
 	// This is a simplified implementation

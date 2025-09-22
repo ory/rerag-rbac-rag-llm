@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 )
 
+// VectorStore defines the interface for vector-based document storage
 type VectorStore interface {
 	AddDocument(doc *models.Document) error
 	SearchSimilar(embedding []float32, topK int) ([]models.Document, error)
@@ -17,17 +18,20 @@ type VectorStore interface {
 	GetFilteredDocuments(filter func(*models.Document) bool) []models.Document
 }
 
+// MemoryVectorStore implements an in-memory vector storage system
 type MemoryVectorStore struct {
 	documents []models.Document
 	mu        sync.RWMutex
 }
 
+// NewMemoryVectorStore creates a new in-memory vector store
 func NewMemoryVectorStore() *MemoryVectorStore {
 	return &MemoryVectorStore{
 		documents: make([]models.Document, 0),
 	}
 }
 
+// AddDocument stores a new document with its embedding in the vector store
 func (m *MemoryVectorStore) AddDocument(doc *models.Document) (err error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -39,6 +43,7 @@ func (m *MemoryVectorStore) AddDocument(doc *models.Document) (err error) {
 	return nil
 }
 
+// SearchSimilar finds the top K most similar documents to the given embedding
 func (m *MemoryVectorStore) SearchSimilar(embedding []float32, topK int) ([]models.Document, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -74,6 +79,7 @@ func (m *MemoryVectorStore) SearchSimilar(embedding []float32, topK int) ([]mode
 	return results, nil
 }
 
+// SearchSimilarWithFilter finds the top K most similar documents with an optional filter
 func (m *MemoryVectorStore) SearchSimilarWithFilter(embedding []float32, topK int, filter func(*models.Document) bool) ([]models.Document, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -113,12 +119,14 @@ func (m *MemoryVectorStore) SearchSimilarWithFilter(embedding []float32, topK in
 	return results, nil
 }
 
+// GetAllDocuments returns all documents in the store
 func (m *MemoryVectorStore) GetAllDocuments() []models.Document {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return m.documents
 }
 
+// GetFilteredDocuments returns documents that match the given filter
 func (m *MemoryVectorStore) GetFilteredDocuments(filter func(*models.Document) bool) []models.Document {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
