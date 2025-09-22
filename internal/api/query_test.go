@@ -34,7 +34,7 @@ func TestQueryScenarios(t *testing.T) {
 					},
 					Embedding: []float32{0.1, 0.2, 0.3},
 				}
-				v.AddDocument(johnDoeDoc)
+				_ = v.AddDocument(johnDoeDoc)
 
 				p.SetUserPermissions("alice", []string{"taxpayer:John Doe"})
 				p.SetDocumentAccess("alice", johnDoeDoc.ID.String(), true)
@@ -72,7 +72,7 @@ func TestQueryScenarios(t *testing.T) {
 					},
 					Embedding: []float32{0.1, 0.2, 0.3},
 				}
-				v.AddDocument(johnDoeDoc)
+				_ = v.AddDocument(johnDoeDoc)
 
 				p.SetUserPermissions("bob", []string{"taxpayer:ABC Corporation"})
 				p.SetDocumentAccess("bob", johnDoeDoc.ID.String(), false)
@@ -122,8 +122,8 @@ func TestQueryScenarios(t *testing.T) {
 					Embedding: []float32{0.15, 0.25, 0.35},
 				}
 
-				v.AddDocument(johnDoeDoc)
-				v.AddDocument(smithDoc)
+				_ = v.AddDocument(johnDoeDoc)
+				_ = v.AddDocument(smithDoc)
 
 				p.SetUserPermissions("peter", []string{"taxpayer:*"})
 				p.SetDocumentAccess("peter", johnDoeDoc.ID.String(), true)
@@ -162,7 +162,7 @@ func TestQueryScenarios(t *testing.T) {
 					},
 					Embedding: []float32{0.2, 0.3, 0.4},
 				}
-				v.AddDocument(abcDoc)
+				_ = v.AddDocument(abcDoc)
 
 				p.SetUserPermissions("bob", []string{"taxpayer:ABC Corporation"})
 				p.SetDocumentAccess("bob", abcDoc.ID.String(), true)
@@ -215,8 +215,8 @@ func TestQueryScenarios(t *testing.T) {
 					Embedding: []float32{0.35, 0.45, 0.55},
 				}
 
-				v.AddDocument(johnDoeDoc)
-				v.AddDocument(smithDoc)
+				_ = v.AddDocument(johnDoeDoc)
+				_ = v.AddDocument(smithDoc)
 
 				p.SetUserPermissions("peter", []string{"taxpayer:*"})
 				p.SetDocumentAccess("peter", johnDoeDoc.ID.String(), true)
