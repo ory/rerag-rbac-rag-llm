@@ -81,7 +81,7 @@ func (o *OllamaClient) buildPrompt(question string, documents []models.Document)
 	}
 
 	contextStr.WriteString(fmt.Sprintf("\nQuestion: %s\n", question))
-	contextStr.WriteString("\nPlease answer the question based ONLY on the information provided in the context documents above. If you can not answer based on the information the user has no access. Inform them about that.\n\nAnswer: ")
+	contextStr.WriteString("\nPlease answer the question based ONLY on the information provided in the context documents above. If you can not answer based on the information the user is likely unauthorized to review the documents.\n\nAnswer: ")
 
 	return contextStr.String()
 }
