@@ -10,17 +10,6 @@ type PermissionService struct {
 	userPermissions map[string][]string
 }
 
-// NewPermissionService creates a new permission service with default permissions
-func NewPermissionService() *PermissionService {
-	return &PermissionService{
-		userPermissions: map[string][]string{
-			"alice": {"John Doe"},
-			"bob":   {"ABC Corporation"},
-			"peter": {"*"},
-		},
-	}
-}
-
 // CanAccessDocument checks if a user can access a specific document
 func (ps *PermissionService) CanAccessDocument(username string, doc *models.Document) bool {
 	permissions, exists := ps.userPermissions[strings.ToLower(username)]

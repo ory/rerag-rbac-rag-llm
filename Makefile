@@ -1,25 +1,36 @@
-.PHONY: help install deps clean build run dev start-keto start-app setup test reset dev-tools format
+.PHONY: help install deps clean build run dev start-keto start-app setup test reset format demo quick-start
 
 # Default target
 help:
-	@echo "Available commands:"
+	@echo "╔══════════════════════════════════════════════════════════╗"
+	@echo "║   ReBAC-Powered RAG Demo - Available Commands           ║"
+	@echo "╚══════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "🚀 Quick Start:"
+	@echo "  quick-start - One-liner setup and demo (install + dev + demo)"
+	@echo "  demo        - Run interactive demo showing permission-aware queries"
+	@echo ""
+	@echo "📦 Installation:"
 	@echo "  install     - Install all dependencies (Go, Ollama, Keto)"
 	@echo "  deps        - Download and tidy Go modules"
+	@echo ""
+	@echo "🏃 Running:"
+	@echo "  dev         - Start both Keto and app in tmux (recommended)"
+	@echo "  start-keto  - Start Keto server (manual)"
+	@echo "  start-app   - Start the application server (manual)"
+	@echo "  setup       - Setup permissions and load sample documents"
+	@echo ""
+	@echo "🧪 Testing & Quality:"
+	@echo "  test        - Run all tests"
+	@echo "  lint        - Run code linter (golangci-lint)"
+	@echo "  format      - Format Go and Markdown files"
+	@echo ""
+	@echo "🔨 Build & Clean:"
 	@echo "  build       - Build the application"
 	@echo "  run         - Build and run the server"
-	@echo "  dev         - Start both Keto and app in tmux"
-	@echo "  start-keto  - Start Keto server"
-	@echo "  start-app   - Start the application server"
-	@echo "  setup       - Setup permissions and load documents"
-	@echo "  test        - Run all tests"
-	@echo "  test-unit   - Run unit tests"
-	@echo "  lint        - Run code linter"
-	@echo "  format      - Format Go and Markdown files"
-	@echo "  swagger-gen - Generate API documentation"
-	@echo "  benchmark   - Run benchmarks"
 	@echo "  clean       - Clean build artifacts"
-	@echo "  reset       - Full reset (clean + remove binaries)"
-	@echo "  dev-tools   - Install development tools"
+	@echo "  reset       - Full reset (clean + remove all data)"
+	@echo ""
 
 # Install all dependencies
 install: install-ollama install-keto deps
@@ -91,6 +102,29 @@ setup:
 	@echo "Loading sample documents..."
 	./scripts/load_documents.sh
 
+# Run interactive demo
+demo:
+	@echo "Starting interactive demo..."
+	@./scripts/demo.sh
+
+# One-liner quick start
+quick-start:
+	@echo "🚀 Starting ReBAC-Powered RAG Demo..."
+	@echo "This will install dependencies and run a full demo."
+	@echo ""
+	@$(MAKE) install
+	@echo ""
+	@echo "Starting services in background..."
+	@$(MAKE) start-keto > /dev/null 2>&1 &
+	@sleep 5
+	@$(MAKE) start-app > /dev/null 2>&1 &
+	@sleep 3
+	@echo "Services started."
+	@echo ""
+	@$(MAKE) setup
+	@echo ""
+	@$(MAKE) demo
+
 # Run tests
 test:
 	go test ./... -v
@@ -104,26 +138,6 @@ clean:
 reset: clean
 	rm -rf .bin/ data/ vector_store.db
 	@echo "Full reset complete"
-
-# Install development tools
-dev-tools:
-	go install golang.org/x/tools/cmd/goimports@latest
-	go install golang.org/x/lint/golint@latest
-
-# Generate API documentation
-swagger-gen:
-	@echo "Generating Swagger documentation..."
-	@if command -v swagger >/dev/null 2>&1; then \
-		swagger generate spec -o ./docs/swagger.json --scan-models; \
-		echo "Swagger spec generated at ./docs/swagger.json"; \
-	else \
-		echo "Swagger not installed. Run 'make install-swagger' first"; \
-	fi
-
-# Install swagger tool
-install-swagger:
-	@echo "Installing swagger..."
-	go install github.com/go-swagger/go-swagger/cmd/swagger@v0.30.5
 
 # Lint code
 lint:
@@ -140,15 +154,9 @@ format:
 	@if command -v goimports >/dev/null 2>&1; then \
 		goimports -w .; \
 	else \
-		echo "goimports not installed, skipping import formatting"; \
+		echo "Installing goimports..."; \
+		go install golang.org/x/tools/cmd/goimports@latest; \
+		goimports -w .; \
 	fi
 	@echo "Formatting Markdown files..."
-	@npx prettier --write "**/*.md"
-
-# Run tests
-test-unit:
-	go test ./... -v
-
-# Run benchmarks
-benchmark:
-	go test ./... -bench=. -benchmem
+	@npx prettier --write "**/*.md" 2>/dev/null || echo "Prettier not available, skipping markdown formatting"
