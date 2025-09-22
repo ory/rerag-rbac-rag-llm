@@ -9,6 +9,7 @@ import (
 	"llm-rag-poc/internal/storage"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/ory/herodot"
 )
@@ -59,7 +60,17 @@ func (s *Server) setupRoutes() {
 func (s *Server) Run(addr string) error {
 	log.Printf("Server starting on %s", addr)
 	handler := loggingMiddleware(s.mux)
-	return http.ListenAndServe(addr, handler)
+
+	server := &http.Server{
+		Addr:           addr,
+		Handler:        handler,
+		ReadTimeout:    15 * time.Second,
+		WriteTimeout:   15 * time.Second,
+		IdleTimeout:    60 * time.Second,
+		MaxHeaderBytes: 1 << 20,
+	}
+
+	return server.ListenAndServe()
 }
 
 func (s *Server) handleDocuments(w http.ResponseWriter, r *http.Request) {

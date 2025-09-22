@@ -99,7 +99,7 @@ func (m *MockVectorStore) GetFilteredDocuments(filter func(*models.Document) boo
 	return result
 }
 
-func (m *MockVectorStore) SearchSimilar(embedding []float32, topK int) ([]models.Document, error) {
+func (m *MockVectorStore) SearchSimilar(_ []float32, topK int) ([]models.Document, error) {
 	if m.searchError {
 		return nil, &VectorStoreError{Message: "mock search error"}
 	}
@@ -115,7 +115,7 @@ func (m *MockVectorStore) SearchSimilar(embedding []float32, topK int) ([]models
 	return result, nil
 }
 
-func (m *MockVectorStore) SearchSimilarWithFilter(embedding []float32, topK int, filter func(*models.Document) bool) ([]models.Document, error) {
+func (m *MockVectorStore) SearchSimilarWithFilter(_ []float32, topK int, filter func(*models.Document) bool) ([]models.Document, error) {
 	if m.searchError {
 		return nil, &VectorStoreError{Message: "mock search error"}
 	}
@@ -159,7 +159,7 @@ func NewMockLLMClient() *MockLLMClient {
 	}
 }
 
-func (m *MockLLMClient) Generate(question string, documents []models.Document) (string, error) {
+func (m *MockLLMClient) Generate(question string, _ []models.Document) (string, error) {
 	if m.shouldFail {
 		return "", &LLMError{Message: "mock LLM error"}
 	}
@@ -411,6 +411,7 @@ func TestAddDocumentVectorStoreError(t *testing.T) {
 }
 
 func TestListDocuments(t *testing.T) {
+	const testUsername = "testuser"
 	server, _, vectorStore, _, permService := createTestServer()
 
 	// Add test documents
@@ -429,10 +430,10 @@ func TestListDocuments(t *testing.T) {
 	_ = vectorStore.AddDocument(doc2)
 
 	// Set permissions - user can access doc1 but not doc2
-	permService.SetDocumentAccess("testuser", doc1.ID.String(), true)
-	permService.SetDocumentAccess("testuser", doc2.ID.String(), false)
+	permService.SetDocumentAccess(testUsername, doc1.ID.String(), true)
+	permService.SetDocumentAccess(testUsername, doc2.ID.String(), false)
 
-	req := createAuthenticatedRequest(http.MethodGet, "/documents", nil, "testuser")
+	req := createAuthenticatedRequest(http.MethodGet, "/documents", nil, testUsername)
 	w := httptest.NewRecorder()
 
 	server.listDocuments(w, req)
@@ -451,12 +452,13 @@ func TestListDocuments(t *testing.T) {
 		t.Errorf("Expected 1 accessible document, got %d", len(documents))
 	}
 
-	if response["user"] != "testuser" {
-		t.Errorf("Expected user 'testuser', got '%s'", response["user"])
+	if response["user"] != testUsername {
+		t.Errorf("Expected user '%s', got '%s'", testUsername, response["user"])
 	}
 }
 
 func TestQueryDocuments(t *testing.T) {
+	const testUsername = "testuser"
 	server, embedder, vectorStore, llmClient, permService := createTestServer()
 
 	// Set up test document
@@ -467,7 +469,7 @@ func TestQueryDocuments(t *testing.T) {
 		Embedding: []float32{0.1, 0.2, 0.3},
 	}
 	_ = vectorStore.AddDocument(doc)
-	permService.SetDocumentAccess("testuser", doc.ID.String(), true)
+	permService.SetDocumentAccess(testUsername, doc.ID.String(), true)
 
 	// Set up embeddings and LLM response
 	question := "What information is available?"
@@ -480,7 +482,7 @@ func TestQueryDocuments(t *testing.T) {
 	}
 
 	body, _ := json.Marshal(queryReq)
-	req := createAuthenticatedRequest(http.MethodPost, "/query", body, "testuser")
+	req := createAuthenticatedRequest(http.MethodPost, "/query", body, testUsername)
 	w := httptest.NewRecorder()
 
 	server.queryDocuments(w, req)
@@ -504,9 +506,10 @@ func TestQueryDocuments(t *testing.T) {
 }
 
 func TestQueryDocumentsInvalidMethod(t *testing.T) {
+	const testUsername = "testuser"
 	server, _, _, _, _ := createTestServer()
 
-	req := createAuthenticatedRequest(http.MethodGet, "/query", nil, "testuser")
+	req := createAuthenticatedRequest(http.MethodGet, "/query", nil, testUsername)
 	w := httptest.NewRecorder()
 
 	server.queryDocuments(w, req)
@@ -517,9 +520,10 @@ func TestQueryDocumentsInvalidMethod(t *testing.T) {
 }
 
 func TestQueryDocumentsInvalidJSON(t *testing.T) {
+	const testUsername = "testuser"
 	server, _, _, _, _ := createTestServer()
 
-	req := createAuthenticatedRequest(http.MethodPost, "/query", []byte("invalid json"), "testuser")
+	req := createAuthenticatedRequest(http.MethodPost, "/query", []byte("invalid json"), testUsername)
 	w := httptest.NewRecorder()
 
 	server.queryDocuments(w, req)
@@ -530,6 +534,7 @@ func TestQueryDocumentsInvalidJSON(t *testing.T) {
 }
 
 func TestQueryDocumentsEmbeddingError(t *testing.T) {
+	const testUsername = "testuser"
 	server, embedder, _, _, _ := createTestServer()
 	embedder.SetShouldFail(true)
 
@@ -539,7 +544,7 @@ func TestQueryDocumentsEmbeddingError(t *testing.T) {
 	}
 
 	body, _ := json.Marshal(queryReq)
-	req := createAuthenticatedRequest(http.MethodPost, "/query", body, "testuser")
+	req := createAuthenticatedRequest(http.MethodPost, "/query", body, testUsername)
 	w := httptest.NewRecorder()
 
 	server.queryDocuments(w, req)
@@ -550,6 +555,7 @@ func TestQueryDocumentsEmbeddingError(t *testing.T) {
 }
 
 func TestQueryDocumentsSearchError(t *testing.T) {
+	const testUsername = "testuser"
 	server, _, vectorStore, _, _ := createTestServer()
 	vectorStore.SetSearchError(true)
 
@@ -559,7 +565,7 @@ func TestQueryDocumentsSearchError(t *testing.T) {
 	}
 
 	body, _ := json.Marshal(queryReq)
-	req := createAuthenticatedRequest(http.MethodPost, "/query", body, "testuser")
+	req := createAuthenticatedRequest(http.MethodPost, "/query", body, testUsername)
 	w := httptest.NewRecorder()
 
 	server.queryDocuments(w, req)
@@ -570,6 +576,7 @@ func TestQueryDocumentsSearchError(t *testing.T) {
 }
 
 func TestQueryDocumentsLLMError(t *testing.T) {
+	const testUsername = "testuser"
 	server, _, _, llmClient, _ := createTestServer()
 	llmClient.SetShouldFail(true)
 
@@ -579,7 +586,7 @@ func TestQueryDocumentsLLMError(t *testing.T) {
 	}
 
 	body, _ := json.Marshal(queryReq)
-	req := createAuthenticatedRequest(http.MethodPost, "/query", body, "testuser")
+	req := createAuthenticatedRequest(http.MethodPost, "/query", body, testUsername)
 	w := httptest.NewRecorder()
 
 	server.queryDocuments(w, req)
@@ -590,11 +597,12 @@ func TestQueryDocumentsLLMError(t *testing.T) {
 }
 
 func TestHandlePermissions(t *testing.T) {
+	const testUsername = "testuser"
 	server, _, _, _, permService := createTestServer()
 
-	permService.SetUserPermissions("testuser", []string{"documents:view", "documents:query"})
+	permService.SetUserPermissions(testUsername, []string{"documents:view", "documents:query"})
 
-	req := createAuthenticatedRequest(http.MethodGet, "/permissions", nil, "testuser")
+	req := createAuthenticatedRequest(http.MethodGet, "/permissions", nil, testUsername)
 	w := httptest.NewRecorder()
 
 	server.handlePermissions(w, req)
@@ -608,8 +616,8 @@ func TestHandlePermissions(t *testing.T) {
 		t.Fatalf("Failed to unmarshal response: %v", err)
 	}
 
-	if response["user"] != "testuser" {
-		t.Errorf("Expected user 'testuser', got '%s'", response["user"])
+	if response["user"] != testUsername {
+		t.Errorf("Expected user '%s', got '%s'", testUsername, response["user"])
 	}
 
 	permissions := response["permissions"].([]interface{})
@@ -619,9 +627,10 @@ func TestHandlePermissions(t *testing.T) {
 }
 
 func TestHandlePermissionsInvalidMethod(t *testing.T) {
+	const testUsername = "testuser"
 	server, _, _, _, _ := createTestServer()
 
-	req := createAuthenticatedRequest(http.MethodPost, "/permissions", nil, "testuser")
+	req := createAuthenticatedRequest(http.MethodPost, "/permissions", nil, testUsername)
 	w := httptest.NewRecorder()
 
 	server.handlePermissions(w, req)

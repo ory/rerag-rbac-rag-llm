@@ -5,3 +5,6 @@ data/
 .bin/
 ./keto
 .idea
+*.db
+vector_store.db
+bin/

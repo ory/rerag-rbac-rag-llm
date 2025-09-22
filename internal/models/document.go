@@ -1,3 +1,4 @@
+// Package models defines the core data structures for the RAG system.
 package models
 
 import "github.com/google/uuid"

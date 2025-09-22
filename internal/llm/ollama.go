@@ -1,3 +1,4 @@
+// Package llm provides LLM (Large Language Model) client implementations for RAG operations.
 package llm
 
 import (

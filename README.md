@@ -39,6 +39,8 @@ This demo uses **only open source tools**:
   like Llama 3 for inference and embedding.
 - [**Llama** models — via Ollama**] — used for both embeddings (semantic search)
   and answering queries.
+- [**SQLite**](https://www.sqlite.org/) — a lightweight, file-based database for
+  persistent vector storage and document management.
 
 The backend is written in Go for simplicity, performance, and hackability.
 
@@ -46,12 +48,12 @@ The backend is written in Go for simplicity, performance, and hackability.
 
 This repository is a **reference implementation**. It uses:
 
-- In-memory vector stores
+- SQLite-based vector storage for persistence
 - Mock tokens for authentication
 - Minimal setup with `make`
 
-This keeps the demo simple to run and easy to extend. In production, you’d swap
-in real authentication, persistent vector databases (Weaviate, Qdrant, Postgres,
+This keeps the demo simple to run and easy to extend. In production, you'd swap
+in real authentication, scalable vector databases (Weaviate, Qdrant, Postgres with pgvector,
 …), and a Keto cluster.
 
 We plan to advance this prototype depending on reception. Feedback from
@@ -60,7 +62,7 @@ developers and the broader community will guide the direction.
 ## Getting started
 
 See [Quick Start](#quick-start) for installation and running instructions.
-Everything runs locally, no external APIs required.
+Everything runs locally, no external APIs required. Vector data is automatically persisted to a local SQLite database (`vector_store.db`).
 
 ## Key Features
 
@@ -76,6 +78,7 @@ Everything runs locally, no external APIs required.
 ### Technical Excellence
 
 - **Local LLM**: Uses Llama3 via Ollama for complete data privacy
+- **Persistent Storage**: SQLite-based vector storage for data persistence
 - **Vector Search**: Semantic search with embeddings for intelligent retrieval
 - **Go Performance**: Fast, concurrent request handling
 - **RESTful API**: Simple integration with any frontend
@@ -92,7 +95,7 @@ graph TD
     F --> G[Secure Response]
 
     H[Ory Keto] --> C
-    I[Vector Store] --> D
+    I[SQLite Vector Store] --> D
     J[Ollama/Llama3] --> F
 ```
 
@@ -144,8 +147,8 @@ make install      # Install all dependencies
 make dev          # Start services (requires tmux)
 make setup        # Configure permissions and load documents
 make test         # Run all tests
-make clean        # Clean up database and files
-make reset        # Full reset and clean start
+make clean        # Clean up build artifacts
+make reset        # Full reset (including database files)
 ```
 
 ## How It Works
@@ -276,7 +279,8 @@ curl http://localhost:8080/permissions \
 
 - **Authentication**: Currently uses mock Bearer tokens for simplicity. In production, replace with a proper authentication system like [Ory Hydra](https://www.ory.sh/hydra/) OAuth2/OIDC server, which integrates seamlessly with Keto for complete identity and access management
 - **Transport**: Use HTTPS in production
-- **Storage**: In-memory store (add persistent storage for production)
+- **Storage**: SQLite provides persistence but consider encryption at rest for sensitive data
+- **Database**: SQLite files should be secured with proper file permissions
 - **Secrets**: Never commit real credentials
 - **Audit**: Log all permission checks and queries
 
@@ -312,18 +316,19 @@ func validateJWT(tokenString string) (*User, error) {
 }
 ```
 
-### Add Persistent Storage
+### Scale Vector Storage
 
-1. Replace in-memory vector store
-2. Options: Pinecone, Weaviate, Qdrant
-3. Maintain permission filtering
+1. Migrate from SQLite to production vector databases
+2. Options: Pinecone, Weaviate, Qdrant, Postgres with pgvector
+3. Maintain permission filtering and the VectorStore interface
 
 ### Scale Horizontally
 
 1. Add Redis for session management
-2. Use external vector database
+2. Replace SQLite with distributed vector database
 3. Deploy Keto cluster
 4. Load balance API servers
+5. Use database clustering/replication for high availability
 
 ## Troubleshooting
 

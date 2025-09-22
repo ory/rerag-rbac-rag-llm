@@ -1,3 +1,4 @@
+// LLM RAG ReBAC OSS is a secure RAG system with relationship-based access control.
 package main
 
 import (
@@ -13,7 +14,18 @@ func main() {
 	log.Println("Starting LLM RAG POC...")
 
 	embedder := embeddings.NewEmbedder()
-	vectorStore := storage.NewMemoryVectorStore()
+
+	// Initialize SQLite vector store
+	vectorStore, err := storage.NewSQLiteVectorStore("./vector_store.db")
+	if err != nil {
+		log.Fatal("Failed to initialize vector store:", err)
+	}
+	defer func() {
+		if err := vectorStore.Close(); err != nil {
+			log.Printf("Error closing vector store: %v", err)
+		}
+	}()
+
 	ollama := llm.NewOllamaClient("http://localhost:11434", "llama3")
 	// Use Keto-based permissions service
 	permService := permissions.NewKetoPermissionService(
@@ -24,6 +36,7 @@ func main() {
 	server := api.NewServer(embedder, vectorStore, ollama, permService)
 
 	if err := server.Run(":8080"); err != nil {
-		log.Fatal("Failed to start server:", err)
+		log.Printf("Failed to start server: %v", err)
+		return
 	}
 }

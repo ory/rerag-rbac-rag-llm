@@ -1,3 +1,4 @@
+// Package embeddings provides text embedding functionality using external services.
 package embeddings
 
 import (
