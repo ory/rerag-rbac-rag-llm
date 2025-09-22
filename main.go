@@ -16,7 +16,7 @@ func main() {
 	embedder := embeddings.NewEmbedder()
 
 	// Initialize SQLite vector store
-	vectorStore, err := storage.NewSQLiteVectorStore("./vector_store.db")
+	vectorStore, err := storage.NewSQLiteVectorStore("./data/vector_store.db")
 	if err != nil {
 		log.Fatal("Failed to initialize vector store:", err)
 	}
