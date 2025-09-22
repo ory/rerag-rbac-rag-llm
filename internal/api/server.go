@@ -13,15 +13,17 @@ import (
 	"github.com/ory/herodot"
 )
 
-// Interfaces for dependency injection
+// EmbedderInterface defines the contract for text embedding services
 type EmbedderInterface interface {
 	GetEmbedding(text string) ([]float32, error)
 }
 
+// LLMInterface defines the contract for Large Language Model services
 type LLMInterface interface {
 	Generate(question string, documents []models.Document) (string, error)
 }
 
+// Server handles HTTP requests for the RAG API
 type Server struct {
 	mux         *http.ServeMux
 	embedder    EmbedderInterface
@@ -31,6 +33,7 @@ type Server struct {
 	writer      *herodot.JSONWriter
 }
 
+// NewServer creates a new API server with the provided dependencies
 func NewServer(embedder EmbedderInterface, vectorStore storage.VectorStore, llmClient LLMInterface, permService permissions.PermissionChecker) *Server {
 	s := &Server{
 		mux:         http.NewServeMux(),
@@ -47,11 +50,12 @@ func NewServer(embedder EmbedderInterface, vectorStore storage.VectorStore, llmC
 
 func (s *Server) setupRoutes() {
 	s.mux.HandleFunc("/documents", s.handleDocuments)
-	s.mux.Handle("/query", auth.AuthMiddleware(http.HandlerFunc(s.queryDocuments)))
+	s.mux.Handle("/query", auth.Middleware(http.HandlerFunc(s.queryDocuments)))
 	s.mux.HandleFunc("/health", s.healthCheck)
-	s.mux.Handle("/permissions", auth.AuthMiddleware(http.HandlerFunc(s.handlePermissions)))
+	s.mux.Handle("/permissions", auth.Middleware(http.HandlerFunc(s.handlePermissions)))
 }
 
+// Run starts the HTTP server on the specified address
 func (s *Server) Run(addr string) error {
 	log.Printf("Server starting on %s", addr)
 	handler := loggingMiddleware(s.mux)
@@ -63,7 +67,8 @@ func (s *Server) handleDocuments(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost:
 		s.addDocument(w, r)
 	case http.MethodGet:
-		s.listDocuments(w, r)
+		// GET requests require authentication
+		auth.Middleware(http.HandlerFunc(s.listDocuments)).ServeHTTP(w, r)
 	default:
 		http.Error(w, `{"error": "Method not allowed"}`, http.StatusMethodNotAllowed)
 	}

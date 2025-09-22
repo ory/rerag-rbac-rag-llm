@@ -5,10 +5,12 @@ import (
 	"strings"
 )
 
+// PermissionService manages user permissions for document access
 type PermissionService struct {
 	userPermissions map[string][]string
 }
 
+// NewPermissionService creates a new permission service with default permissions
 func NewPermissionService() *PermissionService {
 	return &PermissionService{
 		userPermissions: map[string][]string{
@@ -19,6 +21,7 @@ func NewPermissionService() *PermissionService {
 	}
 }
 
+// CanAccessDocument checks if a user can access a specific document
 func (ps *PermissionService) CanAccessDocument(username string, doc *models.Document) bool {
 	permissions, exists := ps.userPermissions[strings.ToLower(username)]
 	if !exists {
@@ -40,6 +43,7 @@ func (ps *PermissionService) CanAccessDocument(username string, doc *models.Docu
 	return false
 }
 
+// FilterDocuments returns only documents the user has permission to access
 func (ps *PermissionService) FilterDocuments(username string, docs []*models.Document) []*models.Document {
 	filtered := make([]*models.Document, 0)
 	for _, doc := range docs {
@@ -50,6 +54,7 @@ func (ps *PermissionService) FilterDocuments(username string, docs []*models.Doc
 	return filtered
 }
 
+// GetUserPermissions retrieves all permissions for a given user
 func (ps *PermissionService) GetUserPermissions(username string) []string {
 	if perms, exists := ps.userPermissions[strings.ToLower(username)]; exists {
 		return perms
@@ -57,6 +62,7 @@ func (ps *PermissionService) GetUserPermissions(username string) []string {
 	return []string{}
 }
 
+// AddUserPermission grants a user permission to access documents for a taxpayer
 func (ps *PermissionService) AddUserPermission(username string, taxpayer string) {
 	username = strings.ToLower(username)
 	if _, exists := ps.userPermissions[username]; !exists {

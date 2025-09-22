@@ -8,9 +8,11 @@ import (
 
 type contextKey string
 
+// UserContextKey is the context key for storing the authenticated user
 const UserContextKey contextKey = "user"
 
-func AuthMiddleware(next http.Handler) http.Handler {
+// Middleware validates Authorization header and adds user to context
+func Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
@@ -35,6 +37,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+// GetUserFromContext extracts the authenticated user from the context
 func GetUserFromContext(ctx context.Context) string {
 	user, ok := ctx.Value(UserContextKey).(string)
 	if !ok {
