@@ -1,356 +1,164 @@
-# ReRAG: Secure knowledge discovery with LLMs + RAG + ReBAC
+# ReRAG - ReBAC + RAG
 
-This project demonstrates how to use large language models (LLMs) for
-**knowledge discovery in documents while enforcing strict access controls**. The
-core problem it addresses:
+RAG (Retrieval-Augmented Generation) lets LLMs answer questions about
+documents by fetching relevant content and adding it to the prompt. It's
+everywhere: customer support, enterprise search, legal discovery. But RAG
+doesn't work in multi-user contexts where different users have different
+permissions. This repository shows how to fix it with ReBAC (relationship based access control) using Ollama and Ory
+Keto, an open source Google Zanzibar implementation.
 
-> How can you let users query a set of documents in natural language **without
-> leaking information they don’t have permission to see**?
+**TL;DR**: Most RAG systems leak private data across users. This repo
+demonstrates permission-aware RAG that guarantees the LLM never sees
+unauthorized documents. Think Google Zanzibar meets embeddings — fork it, break
+it, extend it.
 
-Typical RAG (retrieval-augmented generation) systems fetch all matching content.
-That breaks down in multi-user or multi-tenant environments where different
-people have different permissions. This repo shows how to solve that problem.
+## The Problem & Solution
 
-## Use case
-
-Imagine a company storing tax returns, legal filings, or medical records.
-Employees need to ask questions like:
-
-- _“What was the refund amount for 2023?”_
-- _“Which patients received treatment X?”_
-- _“What contracts expire this quarter?”_
-
-Without proper access controls, any employee could accidentally (or
-intentionally) query documents they should never see. This demo ensures that:
-
-- Only documents the user is authorized to view are even considered for
-  retrieval.
-- The LLM never sees unauthorized context, so it can’t hallucinate or leak
-  sensitive data.
-- Answers differ depending on who asks the question.
-
-## Technologies
-
-This demo uses **only open source tools**:
-
-- [**Ory Keto**](https://www.ory.sh/keto/) — a relationship-based access control
-  (ReBAC) system, based on Google Zanzibar, to model fine-grained permissions.
-- [**Ollama**](https://ollama.ai/) — a local LLM runner that supports models
-  like Llama 3 for inference and embedding.
-- [**Llama** models — via Ollama**] — used for both embeddings (semantic search)
-  and answering queries.
-- [**SQLite**](https://www.sqlite.org/) — a lightweight, file-based database for
-  persistent vector storage and document management.
-
-The backend is written in Go for simplicity, performance, and hackability.
-
-## Why this repo exists
-
-This repository is a **reference implementation**. It uses:
-
-- SQLite-based vector storage for persistence
-- Mock tokens for authentication
-- Minimal setup with `make`
-
-This keeps the demo simple to run and easy to extend. In production, you'd swap
-in real authentication, scalable vector databases (Weaviate, Qdrant, Postgres with pgvector,
-…), and a Keto cluster.
-
-We plan to advance this prototype depending on reception. Feedback from
-developers and the broader community will guide the direction.
-
-## Getting started
-
-See [Quick Start](#quick-start) for installation and running instructions.
-Everything runs locally, no external APIs required. Vector data is automatically persisted to a local SQLite database (`vector_store.db`).
-
-## Key Features
-
-### Secure by Design
-
-- **Permission-Aware RAG**: Queries automatically respect user access rights
-- **Relationship-Based Access Control**: Using Ory Keto for enterprise-grade
-  permissions
-- **Multi-Tenant Architecture**: Different users see different results for the
-  same query
-- **Zero Trust**: Every query is permission-checked, no data leakage
-
-### Technical Excellence
-
-- **Local LLM**: Uses Llama3 via Ollama for complete data privacy
-- **Persistent Storage**: SQLite-based vector storage for data persistence
-- **Vector Search**: Semantic search with embeddings for intelligent retrieval
-- **Go Performance**: Fast, concurrent request handling
-- **RESTful API**: Simple integration with any frontend
-
-## Architecture
-
-```mermaid
-graph TD
-    A[User Query] --> B[Auth Middleware]
-    B --> C[Permission Check]
-    C --> D[Vector Search]
-    D --> E[Filter by Permissions]
-    E --> F[LLM Processing]
-    F --> G[Secure Response]
-
-    H[Ory Keto] --> C
-    I[SQLite Vector Store] --> D
-    J[Ollama/Llama3] --> F
-```
-
-## Quick Start
-
-### Prerequisites
-
-You need [Go](https://go.dev), curl, [jq](https://jqlang.org), and
-[tmux](https://github.com/tmux/tmux) installed on a Unix-like system (Linux,
-macOS). Then:
+### Before (Naive RAG)
 
 ```bash
-# Install all dependencies automatically
+# Alice queries the system
+curl -X POST /query -H "Auth: bad-actor" \
+  -d '{"question": "What was the total refund?"}'
+# Response: "$8,500 for John Doe and $45,000 for ABC Corp"  ❌ DATA LEAK
+```
+
+### After (ReRAG - ReBAC-powered RAG)
+
+```bash
+# Alice queries (can only see John Doe's docs)
+curl -X POST /query -H "Auth: alice" \
+  -d '{"question": "What was the total refund?"}'
+# Response: "$8,500 for John Doe"  ✅
+
+# Bob queries (can only see ABC Corp's docs)
+curl -X POST /query -H "Auth: bob" \
+  -d '{"question": "What was the total refund?"}'
+# Response: "$45,000 for ABC Corporation"  ✅
+
+# Bad actor queries (no docs at all)
+curl -X POST /query -H "Auth: bad-actor" \
+  -d '{"question": "What was the total refund?"}'
+# Response: "You don't have access to any tax returns."  ✅
+```
+
+The model never sees text the user isn't authorized for. No prompt
+injection can leak it.
+
+## Quick Demo
+
+```bash
+# See it in action (requires Go, tmux, curl)
 make install
-```
-
-### Running the Demo
-
-#### Option 1: Using tmux (Recommended)
-
-```bash
-# Start both services in split terminal
 make dev
+# Or if you do not have tmux:
+# make start-app
+# make start-keto
 
-# In another terminal, set up and test
-make setup
-make test
+make demo
 ```
 
-#### Option 2: Manual terminals
+This will:
 
-```bash
-# Terminal 1: Start Keto
-make start-keto
+1. Install dependencies (Ollama, Keto)
+2. Start services
+3. Load sample tax documents
+4. Run permission-aware queries showing different results per user
 
-# Terminal 2: Start the application
-make start-app
+## Why This Matters
 
-# Terminal 3: Setup and test
-make setup
-make test
-```
+Standard RAG pulls all matching documents into context, then relies on the LLM
+to "respect" permissions. That's a compliance nightmare waiting to happen. This
+architecture:
 
-### Available Commands
+- **Filters at retrieval**: Only authorized documents enter the vector search
+  results
+- **Never leaks**: Unauthorized content never reaches the LLM context window
+- **Audit-ready**: Every permission check is logged and traceable
 
-```bash
-make help         # Show all available commands
-make install      # Install all dependencies
-make dev          # Start services (requires tmux)
-make setup        # Configure permissions and load documents
-make test         # Run all tests
-make clean        # Clean up build artifacts
-make reset        # Full reset (including database files)
-```
+## Tech Stack
+
+All open source, runs locally:
+
+- **[Ory Keto](https://www.ory.sh/keto/)**: Google Zanzibar-based ReBAC for
+  permissions
+- **[Ollama](https://ollama.ai/)**: Local LLM runner (Llama3 for inference,
+  nomic for embeddings)
+- **[SQLite](https://www.sqlite.org/)**: Persistent vector storage
+- **Go**: For performance and hackability
 
 ## How It Works
 
-### 1. Document Upload
+```mermaid
+graph LR
+    A[User Query] --> B[Auth Check]
+    B --> C[Vector Search]
+    C --> D[Permission Filter]
+    D --> E[✅ Authorized Docs Only]
+    E --> F[LLM Processing]
+    F --> G[Safe Response]
 
-Documents are uploaded with metadata identifying the owner:
-
-```json
-{
-  "title": "Tax Return 2023 - John Doe",
-  "content": "...",
-  "metadata": {
-    "taxpayer": "John Doe",
-    "year": 2023
-  }
-}
+    H[❌ Unauthorized Docs] --> I[Never Seen by LLM]
 ```
 
-### 2. Permission Definition
+1. **Upload**: Documents tagged with owner metadata
+2. **Permissions**: Relationships defined in Keto (who can see what)
+3. **Query**: User asks a question
+4. **Filter**: Only docs the user can access are retrieved
+5. **Answer**: LLM processes authorized subset only
 
-Relationships are defined in Keto:
-
-```json
-{
-  "namespace": "documents",
-  "object": "john-doe:2023",
-  "relation": "viewer",
-  "subject_id": "alice"
-}
-```
-
-### 3. Secure Querying
-
-When Alice queries "What was the refund amount?":
-
-1. System identifies Alice from the Bearer token
-2. Retrieves relevant documents via vector search
-3. Filters to only documents Alice can access
-4. LLM processes only authorized documents
-5. Returns answer based on permitted data
-
-### 4. The Magic
-
-- Bob asking the same question gets ABC Corporation's refund
-- Alice gets John Doe's refund
-- Peter (admin) could see all refunds
-- Unauthorized users get an error
-
-## API Endpoints
-
-| Endpoint       | Method | Auth | Description                 |
-| -------------- | ------ | ---- | --------------------------- |
-| `/health`      | GET    | No   | Health check                |
-| `/documents`   | POST   | No   | Upload documents            |
-| `/documents`   | GET    | Yes  | List accessible documents   |
-| `/query`       | POST   | Yes  | Query with natural language |
-| `/permissions` | GET    | Yes  | Check user permissions      |
-
-## Example Usage
-
-### Query Documents
+## API Examples
 
 ```bash
-curl -X POST http://localhost:8080/query \
+# Upload document
+curl -X POST localhost:8080/documents \
+  -d '{"title": "Tax Return", "content": "...", "metadata": {"taxpayer": "John Doe"}}'
+
+# Query with permissions
+curl -X POST localhost:8080/query \
   -H "Authorization: Bearer alice" \
-  -H "Content-Type: application/json" \
-  -d '{"question": "What was the total refund amount?"}'
-```
+  -d '{"question": "What was the refund amount?"}'
 
-### Check Permissions
-
-```bash
-curl http://localhost:8080/permissions \
-  -H "Authorization: Bearer alice"
+# Check what Alice can see
+curl localhost:8080/permissions -H "Authorization: Bearer alice"
 ```
 
 ## Project Structure
 
 ```
-.
-├── main.go                      # Application entry point
-├── internal/
-│   ├── api/                     # REST API handlers
-│   ├── auth/                    # Authentication middleware
-│   ├── embeddings/              # Ollama embeddings client
-│   ├── llm/                     # Ollama LLM client
-│   ├── models/                  # Data structures
-│   ├── permissions/             # Permission services
-│   └── storage/                 # Vector store
-├── keto/                        # Keto configuration
-│   ├── config.yml               # Server configuration
-│   └── definitions.opl          # Permission model
-├── documents/                   # Sample data
-│   ├── sample_documents.json    # Tax documents
-│   └── relation_tuples.json     # Permissions
-├── scripts/                     # Utility scripts
-└── examples/                    # Test scenarios
-    ├── 01-load-data/           # Document loading
-    ├── 02-test-permissions/    # Permission tests
-    └── 03-test-queries/        # Query tests
+internal/
+├── api/          # REST handlers
+├── permissions/  # Keto ReBAC integration
+├── storage/      # SQLite vector store
+└── llm/          # Ollama client
+
+keto/            # Permission definitions
+scripts/         # Setup utilities
+examples/        # Test scenarios
 ```
 
-## Why This Architecture?
+## Extending This
 
-### Ory Keto for Permissions
+This is a working reference, not production code. Ideas for extensions:
 
-- **Scalable**: Handles millions of permission checks
-- **Flexible**: Supports complex hierarchies and relationships
-- **Fast**: Optimized for read-heavy workloads
-- **Standard**: Based on Google Zanzibar paper
+- **Real Auth**: Replace mock tokens with OAuth2/OIDC (Ory Hydra works great
+  with Keto)
+- **Scale Storage**: Swap SQLite for Pinecone/Weaviate/pgvector
+- **Audit Trail**: Add comprehensive logging for compliance
+- **Multi-tenancy**: Extend permission model for organizations
 
-### Local LLM with Ollama
+## Common Issues
 
-- **Privacy**: No data leaves your infrastructure
-- **Control**: Choose your model (Llama3, Mistral, etc.)
-- **Cost**: No API fees or usage limits
-- **Speed**: Low latency for local inference
+| Problem                   | Solution                                                 |
+| ------------------------- | -------------------------------------------------------- |
+| Ollama connection refused | Run `ollama serve`                                       |
+| Models missing            | Run `ollama pull llama3 && ollama pull nomic-embed-text` |
+| Keto not running          | Check with `curl localhost:4467/health/ready`            |
 
-### Go for the Backend
+## Contributing
 
-- **Performance**: Excellent concurrency for API servers
-- **Simplicity**: Easy to understand and maintain
-- **Deployment**: Single binary, no runtime dependencies
-- **Type Safety**: Catch errors at compile time
+This is experimental code meant for learning and extending. PRs welcome!
 
-## Security Considerations
+## Feedback
 
-- **Authentication**: Currently uses mock Bearer tokens for simplicity. In production, replace with a proper authentication system like [Ory Hydra](https://www.ory.sh/hydra/) OAuth2/OIDC server, which integrates seamlessly with Keto for complete identity and access management
-- **Transport**: Use HTTPS in production
-- **Storage**: SQLite provides persistence but consider encryption at rest for sensitive data
-- **Database**: SQLite files should be secured with proper file permissions
-- **Secrets**: Never commit real credentials
-- **Audit**: Log all permission checks and queries
-
-## Extending the System
-
-### Add New Document Types
-
-1. Update the document model in `internal/models/`
-2. Add embeddings for new fields
-3. Define permission relationships
-
-### Integrate Real Authentication
-
-Replace the current mock authentication with a production-ready solution:
-
-1. **Using Ory Hydra** (recommended for complete Ory ecosystem):
-   - Deploy Hydra as OAuth2/OIDC server
-   - Configure JWT token validation in `internal/auth/`
-   - Map JWT claims (sub, email) to Keto subject IDs
-   - Leverage Hydra's built-in consent and login flows
-
-2. **Alternative solutions**:
-   - Auth0, Firebase Auth, or AWS Cognito
-   - Self-hosted solutions like Keycloak
-   - Custom JWT validation with your identity provider
-
-Example Hydra integration:
-```go
-// Replace mock validation with JWT verification
-func validateJWT(tokenString string) (*User, error) {
-    // Verify JWT signature and claims
-    // Extract user ID for Keto permission checks
-}
-```
-
-### Scale Vector Storage
-
-1. Migrate from SQLite to production vector databases
-2. Options: Pinecone, Weaviate, Qdrant, Postgres with pgvector
-3. Maintain permission filtering and the VectorStore interface
-
-### Scale Horizontally
-
-1. Add Redis for session management
-2. Replace SQLite with distributed vector database
-3. Deploy Keto cluster
-4. Load balance API servers
-5. Use database clustering/replication for high availability
-
-## Troubleshooting
-
-### Common Issues
-
-**Keto not running**
-
-```bash
-curl http://127.0.0.1:4467/health/ready
-# Should return {"status":"ok"}
-```
-
-**Ollama models missing**
-
-```bash
-ollama list
-# Should show llama3 and nomic-embed-text
-```
-
-**Permission denied errors**
-
-```bash
-# Check Keto has correct tuples
-./.bin/keto relation-tuple get --namespace documents
-```
+Found this useful? Hit us with a star. Have ideas? Open an issue or PR.

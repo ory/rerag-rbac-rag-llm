@@ -1,11 +1,16 @@
 # Claude Integration Guide
 
 ## Project Overview
-This is a secure RAG (Retrieval-Augmented Generation) system that combines LLMs with ReBAC (Relationship-Based Access Control) using Ory Keto. The system demonstrates enterprise-grade document management with fine-grained permissions, vector search, and LLM-powered query answering.
+
+This is a secure RAG (Retrieval-Augmented Generation) system that combines LLMs
+with ReBAC (Relationship-Based Access Control) using Ory Keto. The system
+demonstrates enterprise-grade document management with fine-grained permissions,
+vector search, and LLM-powered query answering.
 
 ## Key Commands & Workflows
 
 ### Testing & Quality Assurance
+
 ```bash
 make test        # Run all tests
 make lint        # Run golangci-lint
@@ -13,6 +18,7 @@ make format      # Format code with gofmt and goimports
 ```
 
 ### Development Workflow
+
 ```bash
 make dev         # Start Keto and app in tmux
 make setup       # Setup permissions and load sample documents
@@ -22,20 +28,24 @@ make clean       # Clean up all resources
 ## Code Standards
 
 ### Go Conventions
+
 - **Go version**: 1.24
 - **Module name**: `llm-rag-poc`
 - **Package structure**: All internal packages under `/internal/`
 - **Testing**: Comprehensive unit tests with mocks, E2E tests, benchmark tests
 - **Error handling**: Use Ory Herodot for HTTP responses
-- **Interfaces**: Define interfaces for all external dependencies (embedder, LLM, storage, permissions)
+- **Interfaces**: Define interfaces for all external dependencies (embedder,
+  LLM, storage, permissions)
 
 ### Testing Approach
+
 - Mock all external dependencies (Ollama, Keto)
 - Test permission scenarios with Alice (limited), Bob (limited), Peter (admin)
 - Use table-driven tests for comprehensive coverage
 - Always test error paths and edge cases
 
 ### Code Style
+
 - Use `gofmt` and `goimports` for formatting
 - Follow standard Go project layout
 - Keep functions focused and testable
@@ -44,19 +54,24 @@ make clean       # Clean up all resources
 ## Important Context
 
 ### Architecture Components
+
 - **API Server** (`/internal/api/`): RESTful endpoints with auth middleware
 - **Embeddings** (`/internal/embeddings/`): Ollama with nomic-embed-text model
 - **LLM Client** (`/internal/llm/`): Ollama with llama3 model
 - **Permissions** (`/internal/permissions/`): Ory Keto ReBAC integration
-- **Storage** (`/internal/storage/`): In-memory vector store with cosine similarity
+- **Storage** (`/internal/storage/`): In-memory vector store with cosine
+  similarity
 
 ### Permission Model
+
 The system uses ReBAC with three test users:
+
 - **alice**: Can only access John Doe's documents
 - **bob**: Can only access ABC Corporation's documents
 - **peter**: Admin with access to all documents
 
 ### API Endpoints
+
 - `POST /documents` - Add document (no auth required for demo)
 - `GET /documents` - List accessible documents (auth required)
 - `POST /query` - RAG query with permission filtering (auth required)
@@ -64,22 +79,32 @@ The system uses ReBAC with three test users:
 - `GET /health` - Health check (no auth)
 
 ### External Services
+
 - **Ollama** (localhost:11434): LLM and embeddings
 - **Ory Keto** (localhost:4466/4467): Permission management
 
 ## Common Tasks & Prompts
 
 ### Adding New Features
-"Add a new endpoint for [feature]. Follow the existing patterns in /internal/api/server.go, include comprehensive tests, and update the Swagger annotations."
+
+"Add a new endpoint for [feature]. Follow the existing patterns in
+/internal/api/server.go, include comprehensive tests, and update the Swagger
+annotations."
 
 ### Refactoring
-"Refactor [component] to improve [aspect]. Maintain the existing interface contracts and ensure all tests pass."
+
+"Refactor [component] to improve [aspect]. Maintain the existing interface
+contracts and ensure all tests pass."
 
 ### Testing
-"Create comprehensive tests for [feature] following the patterns in server_test.go. Include unit tests with mocks and permission-based scenarios."
+
+"Create comprehensive tests for [feature] following the patterns in
+server_test.go. Include unit tests with mocks and permission-based scenarios."
 
 ### Documentation
-"Update documentation for [feature]. Include Swagger annotations, inline comments for complex logic, and update the README if needed."
+
+"Update documentation for [feature]. Include Swagger annotations, inline
+comments for complex logic, and update the README if needed."
 
 ## Key Files & Directories
 
@@ -105,6 +130,7 @@ The system uses ReBAC with three test users:
 ## Testing Strategies
 
 ### Unit Testing Pattern
+
 ```go
 func TestFeature(t *testing.T) {
     server, embedder, vectorStore, llmClient, permService := createTestServer()
@@ -123,7 +149,9 @@ func TestFeature(t *testing.T) {
 ```
 
 ### Permission Testing
+
 Always test with different user contexts:
+
 - alice: Limited access (John Doe only)
 - bob: Limited access (ABC Corp only)
 - peter: Full access (admin)
@@ -141,7 +169,8 @@ Always test with different user contexts:
 
 - [Ory Keto Documentation](https://www.ory.sh/docs/keto)
 - [Ollama API Reference](https://github.com/ollama/ollama/blob/main/docs/api.md)
-- [Google Zanzibar Paper](https://research.google/pubs/pub48190/) (ReBAC foundation)
+- [Google Zanzibar Paper](https://research.google/pubs/pub48190/) (ReBAC
+  foundation)
 - [Project README](./README.md) for setup instructions
 
 ## Development Tips
@@ -155,13 +184,13 @@ Always test with different user contexts:
 
 ## Common Issues & Solutions
 
-| Issue | Solution |
-|-------|----------|
-| Ollama connection refused | Ensure Ollama is running: `ollama serve` |
-| Keto permission denied | Check Keto is running: `make start-keto` |
-| Tests failing | Run `make deps` to ensure dependencies are updated |
-| Embedding errors | Pull the model: `ollama pull nomic-embed-text` |
-| LLM errors | Pull the model: `ollama pull llama3` |
+| Issue                     | Solution                                           |
+| ------------------------- | -------------------------------------------------- |
+| Ollama connection refused | Ensure Ollama is running: `ollama serve`           |
+| Keto permission denied    | Check Keto is running: `make start-keto`           |
+| Tests failing             | Run `make deps` to ensure dependencies are updated |
+| Embedding errors          | Pull the model: `ollama pull nomic-embed-text`     |
+| LLM errors                | Pull the model: `ollama pull llama3`               |
 
 ## When Working with Claude
 
