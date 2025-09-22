@@ -1,4 +1,4 @@
-.PHONY: help install deps clean build run dev start-keto start-app setup test reset dev-tools
+.PHONY: help install deps clean build run dev start-keto start-app setup test reset dev-tools format
 
 # Default target
 help:
@@ -14,6 +14,7 @@ help:
 	@echo "  test        - Run all tests"
 	@echo "  test-unit   - Run unit tests"
 	@echo "  lint        - Run code linter"
+	@echo "  format      - Format Go and Markdown files"
 	@echo "  swagger-gen - Generate API documentation"
 	@echo "  benchmark   - Run benchmarks"
 	@echo "  clean       - Clean build artifacts"
@@ -41,7 +42,7 @@ install-keto:
 	@echo "Installing Keto..."
 	@mkdir -p .bin
 	@if [ ! -f .bin/keto ]; then \
-		curl -L https://github.com/ory/keto/releases/latest/download/keto_linux_amd64.tar.gz | tar -xzC .bin keto; \
+		curl https://raw.githubusercontent.com/ory/meta/master/install.sh | bash -s -- -d -b .bin/ keto v0.14.0; \
 	else \
 		echo "Keto already installed"; \
 	fi
@@ -76,6 +77,7 @@ dev:
 # Start Keto server
 start-keto:
 	@mkdir -p data
+	./.bin/keto migrate up --yes --config keto/config.yml
 	./.bin/keto serve all --config keto/config.yml
 
 # Start the application server
@@ -131,6 +133,18 @@ lint:
 	else \
 		echo "golangci-lint not installed. Please install it first"; \
 	fi
+
+# Format Go and Markdown files
+format:
+	@echo "Formatting Go files..."
+	@go fmt ./...
+	@if command -v goimports >/dev/null 2>&1; then \
+		goimports -w .; \
+	else \
+		echo "goimports not installed, skipping import formatting"; \
+	fi
+	@echo "Formatting Markdown files..."
+	@npx prettier --write "**/*.md"
 
 # Run tests
 test-unit:

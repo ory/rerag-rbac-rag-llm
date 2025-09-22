@@ -10,15 +10,6 @@ type Document struct {
 	Embedding []float32              `json:"-"`
 }
 
-func NewDocument(title, content string, metadata map[string]interface{}) *Document {
-	return &Document{
-		ID:       uuid.New(),
-		Title:    title,
-		Content:  content,
-		Metadata: metadata,
-	}
-}
-
 type QueryRequest struct {
 	Question string `json:"question" binding:"required"`
 	TopK     int    `json:"top_k"`
@@ -30,7 +21,7 @@ type QueryResponse struct {
 	// The generated answer based on the query and accessible documents
 	// required: true
 	Answer string `json:"answer"`
-	
+
 	// The source documents used to generate the answer
 	// required: true
 	Sources []Document `json:"sources"`
@@ -42,7 +33,7 @@ type DocumentResponse struct {
 	// The unique identifier of the added document
 	// required: true
 	ID string `json:"id"`
-	
+
 	// Success message
 	// required: true
 	Message string `json:"message"`
@@ -54,11 +45,11 @@ type DocumentListResponse struct {
 	// List of documents accessible to the user
 	// required: true
 	Documents []Document `json:"documents"`
-	
+
 	// Total count of accessible documents
 	// required: true
 	Count int `json:"count"`
-	
+
 	// The authenticated user
 	// required: true
 	User string `json:"user"`
@@ -70,7 +61,7 @@ type PermissionsResponse struct {
 	// The authenticated user
 	// required: true
 	User string `json:"user"`
-	
+
 	// List of permissions granted to the user
 	// required: true
 	Permissions []string `json:"permissions"`

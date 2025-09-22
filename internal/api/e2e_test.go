@@ -52,7 +52,7 @@ func TestE2E_DocumentWorkflow(t *testing.T) {
 		t.Errorf("Expected unauthorized without auth header, got %d", w.Code)
 	}
 
-	// Step 3: List documents with valid auth  
+	// Step 3: List documents with valid auth
 	req = createAuthenticatedRequest(http.MethodGet, "/documents", nil, "testuser")
 	w = httptest.NewRecorder()
 
@@ -86,13 +86,13 @@ func TestE2E_QueryWorkflow(t *testing.T) {
 
 	// Setup: Add test documents
 	doc1 := models.Document{
-		Title:   "Financial Report",
-		Content: "The company made a profit of $100,000 this year",
+		Title:    "Financial Report",
+		Content:  "The company made a profit of $100,000 this year",
 		Metadata: map[string]interface{}{"type": "financial"},
 	}
 	doc2 := models.Document{
-		Title:   "HR Document", 
-		Content: "Employee satisfaction scores are high at 95%",
+		Title:    "HR Document",
+		Content:  "Employee satisfaction scores are high at 95%",
 		Metadata: map[string]interface{}{"type": "hr"},
 	}
 

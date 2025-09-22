@@ -4,3 +4,4 @@ server
 data/
 .bin/
 ./keto
+.idea

@@ -18,7 +18,7 @@ func main() {
 	// Use Keto-based permissions service
 	permService := permissions.NewKetoPermissionService(
 		"http://127.0.0.1:4466", // Keto Read API
-		"http://127.0.0.1:4467", // Keto Write API  
+		"http://127.0.0.1:4467", // Keto Write API
 	)
 
 	server := api.NewServer(embedder, vectorStore, ollama, permService)

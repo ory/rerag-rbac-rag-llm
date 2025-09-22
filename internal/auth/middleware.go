@@ -40,6 +40,6 @@ func GetUserFromContext(ctx context.Context) string {
 	if !ok {
 		panic("user not found in context")
 	}
-	
+
 	return user
 }

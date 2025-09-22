@@ -34,11 +34,11 @@ func (m *MockEmbedder) GetEmbedding(text string) ([]float32, error) {
 	if m.shouldFail {
 		return nil, &EmbeddingError{Message: "mock embedding error"}
 	}
-	
+
 	if embedding, exists := m.embeddings[text]; exists {
 		return embedding, nil
 	}
-	
+
 	// Return a default embedding
 	return []float32{0.1, 0.2, 0.3, 0.4}, nil
 }
@@ -103,7 +103,7 @@ func (m *MockVectorStore) SearchSimilar(embedding []float32, topK int) ([]models
 	if m.searchError {
 		return nil, &VectorStoreError{Message: "mock search error"}
 	}
-	
+
 	var result []models.Document
 	count := 0
 	for _, doc := range m.documents {
@@ -119,7 +119,7 @@ func (m *MockVectorStore) SearchSimilarWithFilter(embedding []float32, topK int,
 	if m.searchError {
 		return nil, &VectorStoreError{Message: "mock search error"}
 	}
-	
+
 	var result []models.Document
 	count := 0
 	for _, doc := range m.documents {
@@ -148,8 +148,8 @@ func (e *VectorStoreError) Error() string {
 }
 
 type MockLLMClient struct {
-	responses   map[string]string
-	shouldFail  bool
+	responses  map[string]string
+	shouldFail bool
 }
 
 func NewMockLLMClient() *MockLLMClient {
@@ -163,11 +163,11 @@ func (m *MockLLMClient) Generate(question string, documents []models.Document) (
 	if m.shouldFail {
 		return "", &LLMError{Message: "mock LLM error"}
 	}
-	
+
 	if response, exists := m.responses[question]; exists {
 		return response, nil
 	}
-	
+
 	return "Mock LLM response for: " + question, nil
 }
 
@@ -251,7 +251,7 @@ func createTestServer() (*Server, *MockEmbedder, *MockVectorStore, *MockLLMClien
 	vectorStore := NewMockVectorStore()
 	llmClient := NewMockLLMClient()
 	permService := NewMockPermissionService()
-	
+
 	// Create server with mock interfaces
 	server := &Server{
 		mux:         http.NewServeMux(),
@@ -261,9 +261,9 @@ func createTestServer() (*Server, *MockEmbedder, *MockVectorStore, *MockLLMClien
 		permService: permService,
 		writer:      herodot.NewJSONWriter(nil),
 	}
-	
+
 	server.setupRoutes()
-	
+
 	return server, embedder, vectorStore, llmClient, permService
 }
 
@@ -271,11 +271,11 @@ func createTestServer() (*Server, *MockEmbedder, *MockVectorStore, *MockLLMClien
 func createAuthenticatedRequest(method, url string, body []byte, username string) *http.Request {
 	req := httptest.NewRequest(method, url, bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
-	
+
 	// Add user to context (simulating auth middleware)
 	ctx := context.WithValue(req.Context(), auth.UserContextKey, username)
 	req = req.WithContext(ctx)
-	
+
 	return req
 }
 
@@ -421,7 +421,7 @@ func TestListDocuments(t *testing.T) {
 	}
 	doc2 := &models.Document{
 		ID:      uuid.New(),
-		Title:   "Document 2", 
+		Title:   "Document 2",
 		Content: "Content 2",
 	}
 
@@ -461,9 +461,9 @@ func TestQueryDocuments(t *testing.T) {
 
 	// Set up test document
 	doc := &models.Document{
-		ID:      uuid.New(),
-		Title:   "Test Document",
-		Content: "This contains important information",
+		ID:        uuid.New(),
+		Title:     "Test Document",
+		Content:   "This contains important information",
 		Embedding: []float32{0.1, 0.2, 0.3},
 	}
 	vectorStore.AddDocument(doc)

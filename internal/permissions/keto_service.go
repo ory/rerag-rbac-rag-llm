@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"llm-rag-poc/internal/models"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -33,7 +33,7 @@ func (k *KetoPermissionService) CanAccessDocument(username string, doc *models.D
 
 	// Build the check URL
 	checkURL := fmt.Sprintf("%s/relation-tuples/check/openapi", k.readURL)
-	
+
 	// Create query parameters
 	params := url.Values{}
 	params.Add("namespace", "documents")
@@ -42,7 +42,7 @@ func (k *KetoPermissionService) CanAccessDocument(username string, doc *models.D
 	params.Add("subject_id", username)
 
 	fullURL := fmt.Sprintf("%s?%s", checkURL, params.Encode())
-	
+
 	resp, err := http.Get(fullURL)
 	if err != nil {
 		log.Printf("Error checking permission for user %s on object %s: %v", username, objectID, err)
@@ -74,15 +74,15 @@ func (k *KetoPermissionService) FilterDocuments(username string, docs []*models.
 }
 
 func (k *KetoPermissionService) GetUserPermissions(username string) []string {
-	// Build the list URL  
+	// Build the list URL
 	listURL := fmt.Sprintf("%s/relation-tuples", k.readURL)
-	
+
 	params := url.Values{}
 	params.Add("namespace", "documents")
 	params.Add("subject_id", username)
 
 	fullURL := fmt.Sprintf("%s?%s", listURL, params.Encode())
-	
+
 	resp, err := http.Get(fullURL)
 	if err != nil {
 		log.Printf("Error getting permissions for user %s: %v", username, err)
@@ -130,9 +130,9 @@ func (k *KetoPermissionService) documentToKetoObject(doc *models.Document) strin
 
 		// Normalize taxpayer name to kebab-case
 		taxpayerKey := strings.ToLower(strings.ReplaceAll(taxpayer, " ", "-"))
-		
+
 		return fmt.Sprintf("%s:%s", taxpayerKey, year)
 	}
-	
+
 	return ""
 }

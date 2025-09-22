@@ -60,7 +60,7 @@ func (o *OllamaClient) Generate(question string, context []models.Document) (str
 func (o *OllamaClient) buildPrompt(question string, documents []models.Document) string {
 	var contextStr strings.Builder
 
-	contextStr.WriteString("You are a helpful assistant that answers questions based on the provided tax return documents.\n\n")
+	contextStr.WriteString("You are a helpful assistant that answers questions based on the provided documents. If the answer can not be found in the documents, assume the user is not authorized to view them.\n\n")
 	contextStr.WriteString("Context Documents:\n")
 
 	for i, doc := range documents {
@@ -77,7 +77,7 @@ func (o *OllamaClient) buildPrompt(question string, documents []models.Document)
 	}
 
 	contextStr.WriteString(fmt.Sprintf("\nQuestion: %s\n", question))
-	contextStr.WriteString("\nPlease answer the question based ONLY on the information provided in the context documents above. If the answer cannot be found in the documents, say so clearly.\n\nAnswer: ")
+	contextStr.WriteString("\nPlease answer the question based ONLY on the information provided in the context documents above. If you can not answer based on the information the user has no access. Inform them about that.\n\nAnswer: ")
 
 	return contextStr.String()
 }

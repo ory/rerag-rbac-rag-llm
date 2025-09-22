@@ -163,7 +163,7 @@ func (s *Server) healthCheck(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error": "Method not allowed"}`, http.StatusMethodNotAllowed)
 		return
 	}
-	
+
 	response := &models.HealthResponse{Status: "healthy"}
 	s.writer.Write(w, r, response)
 }
