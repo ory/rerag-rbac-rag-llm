@@ -93,8 +93,7 @@ setup:
 
 # Run tests
 test:
-	@echo "Running query tests..."
-	./scripts/test_queries.sh
+	go test ./... -v
 
 # Clean build artifacts
 clean:
