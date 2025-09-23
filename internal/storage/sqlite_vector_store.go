@@ -127,42 +127,6 @@ func (s *SQLiteVectorStore) UpsertDocument(doc *models.Document) error {
 	return nil
 }
 
-// GetDocumentByID retrieves a document by its ID
-func (s *SQLiteVectorStore) GetDocumentByID(id uuid.UUID) (*models.Document, error) {
-	query := `SELECT id, title, content, embedding FROM documents WHERE id = ?`
-	row := s.db.QueryRow(query, id.String())
-
-	var docID, title, content string
-	var embeddingJSON []byte
-
-	err := row.Scan(&docID, &title, &content, &embeddingJSON)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("document with ID %s not found", id)
-		}
-		return nil, fmt.Errorf("failed to scan document: %w", err)
-	}
-
-	// Parse UUID
-	parsedID, err := uuid.Parse(docID)
-	if err != nil {
-		return nil, fmt.Errorf("error parsing UUID %s: %w", docID, err)
-	}
-
-	// Parse embedding
-	var docEmbedding []float32
-	if err := json.Unmarshal(embeddingJSON, &docEmbedding); err != nil {
-		return nil, fmt.Errorf("error parsing embedding for doc %s: %w", docID, err)
-	}
-
-	return &models.Document{
-		ID:        parsedID,
-		Title:     title,
-		Content:   content,
-		Embedding: docEmbedding,
-	}, nil
-}
-
 // SearchSimilar finds the top K most similar documents to the given embedding
 func (s *SQLiteVectorStore) SearchSimilar(embedding []float32, topK int) ([]models.Document, error) {
 	return s.SearchSimilarWithFilter(embedding, topK, nil)

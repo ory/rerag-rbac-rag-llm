@@ -662,3 +662,92 @@ func TestHandleDocumentsMethodSwitch(t *testing.T) {
 		t.Errorf("Expected status %d, got %d", http.StatusMethodNotAllowed, w.Code)
 	}
 }
+
+func TestDocumentUpsertBehavior(t *testing.T) {
+	server, embedder, vectorStore, _, _ := createTestServer()
+
+	// Add initial document and get its ID
+	docID := addInitialDocumentForUpsert(t, server, embedder)
+
+	// Update the same document (upsert)
+	updateDocumentForUpsert(t, server, embedder, docID)
+
+	// Verify the upsert worked correctly
+	verifyUpsertResult(t, vectorStore, docID)
+}
+
+func addInitialDocumentForUpsert(t *testing.T, server *Server, embedder *MockEmbedder) string {
+	doc := models.Document{
+		Title:    "Initial Title",
+		Content:  "Initial content for upsert test",
+		Metadata: map[string]interface{}{"version": "1.0"},
+	}
+	embedder.SetEmbedding(doc.Content, []float32{0.1, 0.2, 0.3, 0.4})
+
+	body, _ := json.Marshal(doc)
+	req := httptest.NewRequest(http.MethodPost, "/documents", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	server.addDocument(w, req)
+
+	if w.Code != http.StatusCreated {
+		t.Fatalf("Expected status %d, got %d", http.StatusCreated, w.Code)
+	}
+
+	var response map[string]string
+	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+		t.Fatalf("Failed to unmarshal response: %v", err)
+	}
+	return response["id"]
+}
+
+func updateDocumentForUpsert(t *testing.T, server *Server, embedder *MockEmbedder, docID string) {
+	parsedID, err := uuid.Parse(docID)
+	if err != nil {
+		t.Fatalf("Failed to parse document ID: %v", err)
+	}
+
+	updatedDoc := models.Document{
+		ID:       parsedID,
+		Title:    "Updated Title",
+		Content:  "Updated content for upsert test",
+		Metadata: map[string]interface{}{"version": "2.0"},
+	}
+	embedder.SetEmbedding(updatedDoc.Content, []float32{0.2, 0.3, 0.4, 0.5})
+
+	body, _ := json.Marshal(updatedDoc)
+	req := httptest.NewRequest(http.MethodPost, "/documents", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	server.addDocument(w, req)
+
+	if w.Code != http.StatusCreated {
+		t.Fatalf("Expected status %d for upsert, got %d", http.StatusCreated, w.Code)
+	}
+}
+
+func verifyUpsertResult(t *testing.T, vectorStore *MockVectorStore, docID string) {
+	documents := vectorStore.GetAllDocuments()
+
+	var finalDoc *models.Document
+	docCount := 0
+	for _, doc := range documents {
+		if doc.ID.String() == docID {
+			docCount++
+			finalDoc = &doc
+		}
+	}
+
+	if docCount != 1 {
+		t.Errorf("Expected exactly 1 document with ID %s, got %d", docID, docCount)
+	}
+	if finalDoc == nil {
+		t.Fatal("Updated document not found")
+	}
+	if finalDoc.Title != "Updated Title" {
+		t.Errorf("Expected updated title 'Updated Title', got '%s'", finalDoc.Title)
+	}
+	if version, ok := finalDoc.Metadata["version"].(string); !ok || version != "2.0" {
+		t.Errorf("Expected version '2.0', got %v", finalDoc.Metadata["version"])
+	}
+}
