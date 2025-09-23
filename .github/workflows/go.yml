@@ -53,3 +53,92 @@ jobs:
       with:
         version: v2.5.0
         args: --timeout=5m
+
+  demo-test:
+    runs-on: ubuntu-latest
+    needs: [test, format, lint]
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.22'
+
+    - name: Install dependencies
+      run: |
+        # Install jq for JSON parsing
+        sudo apt-get update
+        sudo apt-get install -y jq curl
+
+        # Install and setup Ollama
+        curl -fsSL https://ollama.com/install.sh | sh
+
+        # Start Ollama in background
+        ollama serve &
+        OLLAMA_PID=$!
+
+        # Wait for Ollama to be ready
+        echo "Waiting for Ollama to start..."
+        for i in {1..30}; do
+          if curl -s http://localhost:11434/api/version >/dev/null 2>&1; then
+            echo "Ollama is ready"
+            break
+          fi
+          sleep 2
+        done
+
+        # Pull required models
+        ollama pull nomic-embed-text
+        ollama pull llama3
+
+        # Install Ory Keto
+        curl -L https://github.com/ory/keto/releases/download/v0.12.0/keto_0.12.0-linux_64bit.tar.gz | tar xz
+        chmod +x keto
+        sudo mv keto /usr/local/bin/
+
+    - name: Build application
+      run: go build -o llm-rag-poc .
+
+    - name: Run demo test
+      run: |
+        # Start Keto in background
+        keto serve --config keto/config.yml &
+        KETO_PID=$!
+
+        # Wait for Keto to be ready
+        echo "Waiting for Keto to start..."
+        for i in {1..30}; do
+          if curl -s http://localhost:4467/health/ready >/dev/null 2>&1; then
+            echo "Keto is ready"
+            break
+          fi
+          sleep 2
+        done
+
+        # Setup Keto namespace and permissions
+        keto namespace migrate up --config keto/config.yml
+        ./scripts/setup-keto-permissions.sh
+
+        # Start our application in background
+        ./llm-rag-poc &
+        APP_PID=$!
+
+        # Wait for app to be ready
+        echo "Waiting for application to start..."
+        for i in {1..30}; do
+          if curl -s http://localhost:8080/health >/dev/null 2>&1; then
+            echo "Application is ready"
+            break
+          fi
+          sleep 2
+        done
+
+        # Load sample documents
+        ./scripts/load_documents.sh
+
+        # Run the demo with strict error handling
+        make demo
+
+        # Cleanup
+        kill $APP_PID $KETO_PID $OLLAMA_PID 2>/dev/null || true
