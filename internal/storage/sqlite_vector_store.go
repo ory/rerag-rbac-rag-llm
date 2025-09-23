@@ -33,13 +33,13 @@ func NewSQLiteVectorStore(dsn string) (*SQLiteVectorStore, error) {
 
 	// Test the connection
 	if err := db.Ping(); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
 	store := &SQLiteVectorStore{db: db}
 	if err := store.initDB(); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("failed to initialize database: %w", err)
 	}
 
@@ -53,12 +53,13 @@ func (s *SQLiteVectorStore) initDB() error {
 		id TEXT PRIMARY KEY,
 		title TEXT NOT NULL,
 		content TEXT NOT NULL,
-		metadata TEXT,
 		embedding BLOB NOT NULL,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);
 
 	CREATE INDEX IF NOT EXISTS idx_documents_created_at ON documents(created_at);
+	CREATE INDEX IF NOT EXISTS idx_documents_updated_at ON documents(updated_at);
 	`
 
 	_, err := s.db.Exec(query)
@@ -80,9 +81,32 @@ func (s *SQLiteVectorStore) AddDocument(doc *models.Document) error {
 		doc.ID = newID
 	}
 
-	metadataJSON, err := json.Marshal(doc.Metadata)
+	embeddingJSON, err := json.Marshal(doc.Embedding)
 	if err != nil {
-		return fmt.Errorf("failed to marshal metadata: %w", err)
+		return fmt.Errorf("failed to marshal embedding: %w", err)
+	}
+
+	query := `
+	INSERT INTO documents (id, title, content, embedding)
+	VALUES (?, ?, ?, ?)
+	`
+
+	_, err = s.db.Exec(query, doc.ID.String(), doc.Title, doc.Content, embeddingJSON)
+	if err != nil {
+		return fmt.Errorf("failed to insert document: %w", err)
+	}
+
+	return nil
+}
+
+// UpsertDocument inserts or updates a document with its embedding in the vector store
+func (s *SQLiteVectorStore) UpsertDocument(doc *models.Document) error {
+	if doc.ID == uuid.Nil {
+		newID, err := uuid.NewUUID()
+		if err != nil {
+			return fmt.Errorf("failed to generate UUID: %w", err)
+		}
+		doc.ID = newID
 	}
 
 	embeddingJSON, err := json.Marshal(doc.Embedding)
@@ -91,16 +115,52 @@ func (s *SQLiteVectorStore) AddDocument(doc *models.Document) error {
 	}
 
 	query := `
-	INSERT INTO documents (id, title, content, metadata, embedding)
-	VALUES (?, ?, ?, ?, ?)
+	INSERT OR REPLACE INTO documents (id, title, content, embedding, updated_at)
+	VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
 	`
 
-	_, err = s.db.Exec(query, doc.ID.String(), doc.Title, doc.Content, string(metadataJSON), embeddingJSON)
+	_, err = s.db.Exec(query, doc.ID.String(), doc.Title, doc.Content, embeddingJSON)
 	if err != nil {
-		return fmt.Errorf("failed to insert document: %w", err)
+		return fmt.Errorf("failed to upsert document: %w", err)
 	}
 
 	return nil
+}
+
+// GetDocumentByID retrieves a document by its ID
+func (s *SQLiteVectorStore) GetDocumentByID(id uuid.UUID) (*models.Document, error) {
+	query := `SELECT id, title, content, embedding FROM documents WHERE id = ?`
+	row := s.db.QueryRow(query, id.String())
+
+	var docID, title, content string
+	var embeddingJSON []byte
+
+	err := row.Scan(&docID, &title, &content, &embeddingJSON)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("document with ID %s not found", id)
+		}
+		return nil, fmt.Errorf("failed to scan document: %w", err)
+	}
+
+	// Parse UUID
+	parsedID, err := uuid.Parse(docID)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing UUID %s: %w", docID, err)
+	}
+
+	// Parse embedding
+	var docEmbedding []float32
+	if err := json.Unmarshal(embeddingJSON, &docEmbedding); err != nil {
+		return nil, fmt.Errorf("error parsing embedding for doc %s: %w", docID, err)
+	}
+
+	return &models.Document{
+		ID:        parsedID,
+		Title:     title,
+		Content:   content,
+		Embedding: docEmbedding,
+	}, nil
 }
 
 // SearchSimilar finds the top K most similar documents to the given embedding
@@ -110,7 +170,7 @@ func (s *SQLiteVectorStore) SearchSimilar(embedding []float32, topK int) ([]mode
 
 // SearchSimilarWithFilter finds the top K most similar documents with an optional filter
 func (s *SQLiteVectorStore) SearchSimilarWithFilter(embedding []float32, topK int, filter func(*models.Document) bool) ([]models.Document, error) {
-	query := `SELECT id, title, content, metadata, embedding FROM documents`
+	query := `SELECT id, title, content, embedding FROM documents`
 	rows, err := s.db.Query(query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query documents: %w", err)
@@ -155,10 +215,10 @@ func (s *SQLiteVectorStore) calculateSimilarityScores(rows *sql.Rows, embedding 
 
 // scanRowToDocument scans a database row into a Document struct
 func (s *SQLiteVectorStore) scanRowToDocument(rows *sql.Rows) (models.Document, error) {
-	var id, title, content, metadataJSON string
+	var id, title, content string
 	var embeddingJSON []byte
 
-	err := rows.Scan(&id, &title, &content, &metadataJSON, &embeddingJSON)
+	err := rows.Scan(&id, &title, &content, &embeddingJSON)
 	if err != nil {
 		return models.Document{}, err
 	}
@@ -167,12 +227,6 @@ func (s *SQLiteVectorStore) scanRowToDocument(rows *sql.Rows) (models.Document, 
 	docID, err := uuid.Parse(id)
 	if err != nil {
 		return models.Document{}, fmt.Errorf("error parsing UUID %s: %w", id, err)
-	}
-
-	// Parse metadata
-	var metadata map[string]interface{}
-	if err := json.Unmarshal([]byte(metadataJSON), &metadata); err != nil {
-		return models.Document{}, fmt.Errorf("error parsing metadata for doc %s: %w", id, err)
 	}
 
 	// Parse embedding
@@ -185,7 +239,6 @@ func (s *SQLiteVectorStore) scanRowToDocument(rows *sql.Rows) (models.Document, 
 		ID:        docID,
 		Title:     title,
 		Content:   content,
-		Metadata:  metadata,
 		Embedding: docEmbedding,
 	}, nil
 }
@@ -212,7 +265,7 @@ func (s *SQLiteVectorStore) getTopKResults(scores []scoredDoc, topK int) []model
 
 // GetAllDocuments returns all documents in the store
 func (s *SQLiteVectorStore) GetAllDocuments() []models.Document {
-	query := `SELECT id, title, content, metadata, embedding FROM documents ORDER BY created_at DESC`
+	query := `SELECT id, title, content, embedding FROM documents ORDER BY created_at DESC`
 	rows, err := s.db.Query(query)
 	if err != nil {
 		log.Printf("Error querying all documents: %v", err)

@@ -2,6 +2,7 @@
 package storage
 
 import (
+	"fmt"
 	"llm-rag-poc/internal/models"
 	"math"
 	"sort"
@@ -13,6 +14,7 @@ import (
 // VectorStore defines the interface for vector-based document storage
 type VectorStore interface {
 	AddDocument(doc *models.Document) error
+	UpsertDocument(doc *models.Document) error
 	SearchSimilar(embedding []float32, topK int) ([]models.Document, error)
 	SearchSimilarWithFilter(embedding []float32, topK int, filter func(*models.Document) bool) ([]models.Document, error)
 	GetAllDocuments() []models.Document
@@ -21,27 +23,69 @@ type VectorStore interface {
 
 // MemoryVectorStore implements an in-memory vector storage system
 type MemoryVectorStore struct {
-	documents []models.Document
+	documents map[uuid.UUID]models.Document
 	mu        sync.RWMutex
 }
 
 // NewMemoryVectorStore creates a new in-memory vector store
 func NewMemoryVectorStore() *MemoryVectorStore {
 	return &MemoryVectorStore{
-		documents: make([]models.Document, 0),
+		documents: make(map[uuid.UUID]models.Document),
 	}
 }
 
 // AddDocument stores a new document with its embedding in the vector store
-func (m *MemoryVectorStore) AddDocument(doc *models.Document) (err error) {
+func (m *MemoryVectorStore) AddDocument(doc *models.Document) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	doc.ID, err = uuid.NewUUID()
-	if err != nil {
-		return err
+
+	// If no ID is provided, generate one
+	if doc.ID == uuid.Nil {
+		newID, err := uuid.NewUUID()
+		if err != nil {
+			return err
+		}
+		doc.ID = newID
 	}
-	m.documents = append(m.documents, *doc)
+
+	// Check if document already exists
+	if _, exists := m.documents[doc.ID]; exists {
+		return fmt.Errorf("document with ID %s already exists", doc.ID)
+	}
+
+	m.documents[doc.ID] = *doc
 	return nil
+}
+
+// UpsertDocument inserts or updates a document with its embedding in the vector store
+func (m *MemoryVectorStore) UpsertDocument(doc *models.Document) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	// If no ID is provided, generate one
+	if doc.ID == uuid.Nil {
+		newID, err := uuid.NewUUID()
+		if err != nil {
+			return err
+		}
+		doc.ID = newID
+	}
+
+	m.documents[doc.ID] = *doc
+	return nil
+}
+
+// GetDocumentByID retrieves a document by its ID
+func (m *MemoryVectorStore) GetDocumentByID(id uuid.UUID) (*models.Document, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	doc, exists := m.documents[id]
+	if !exists {
+		return nil, fmt.Errorf("document with ID %s not found", id)
+	}
+
+	return &doc, nil
 }
 
 // SearchSimilar finds the top K most similar documents to the given embedding
@@ -95,9 +139,9 @@ func (m *MemoryVectorStore) SearchSimilarWithFilter(embedding []float32, topK in
 	}
 
 	scores := make([]scoredDoc, 0)
-	for i := range m.documents {
-		doc := m.documents[i]
-		if filter != nil && !filter(&doc) {
+	for _, doc := range m.documents {
+		docCopy := doc
+		if filter != nil && !filter(&docCopy) {
 			continue
 		}
 		similarity := cosineSimilarity(embedding, doc.Embedding)
@@ -124,7 +168,12 @@ func (m *MemoryVectorStore) SearchSimilarWithFilter(embedding []float32, topK in
 func (m *MemoryVectorStore) GetAllDocuments() []models.Document {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	return m.documents
+
+	documents := make([]models.Document, 0, len(m.documents))
+	for _, doc := range m.documents {
+		documents = append(documents, doc)
+	}
+	return documents
 }
 
 // GetFilteredDocuments returns documents that match the given filter
@@ -133,13 +182,17 @@ func (m *MemoryVectorStore) GetFilteredDocuments(filter func(*models.Document) b
 	defer m.mu.RUnlock()
 
 	if filter == nil {
-		return m.documents
+		documents := make([]models.Document, 0, len(m.documents))
+		for _, doc := range m.documents {
+			documents = append(documents, doc)
+		}
+		return documents
 	}
 
 	filtered := make([]models.Document, 0)
-	for i := range m.documents {
-		doc := m.documents[i]
-		if filter(&doc) {
+	for _, doc := range m.documents {
+		docCopy := doc
+		if filter(&docCopy) {
 			filtered = append(filtered, doc)
 		}
 	}

@@ -1,5 +1,6 @@
 [
   {
+    "id": "a7d36b58-3d46-4107-9b88-6b1400bc9a5d",
     "title": "Tax Return 2023 - John Doe",
     "content": "Tax Year: 2023\nTaxpayer: John Doe\nFiling Status: Single\nAdjusted Gross Income: $75,000\nTaxable Income: $62,000\nFederal Tax Withheld: $12,500\nRefund Amount: $1,200\nDeductions: Standard deduction of $13,850\n401(k) Contributions: $6,000\nHealth Insurance Premiums: $3,600",
     "metadata": {
@@ -9,6 +10,7 @@
     }
   },
   {
+    "id": "d0069e8b-6079-443a-ae0b-9e4733ef2c80",
     "title": "Tax Return 2023 - Jane Smith",
     "content": "Tax Year: 2023\nTaxpayer: Jane Smith\nFiling Status: Married Filing Jointly\nSpouse: Robert Smith\nAdjusted Gross Income: $125,000\nTaxable Income: $97,300\nFederal Tax Withheld: $22,000\nRefund Amount: $3,500\nDeductions: Standard deduction of $27,700\nMortgage Interest: $12,000\nCharitable Contributions: $5,000",
     "metadata": {
@@ -18,6 +20,7 @@
     }
   },
   {
+    "id": "b8e47c69-4e57-4218-8c99-7c2511cd0a6e",
     "title": "Tax Return 2022 - John Doe",
     "content": "Tax Year: 2022\nTaxpayer: John Doe\nFiling Status: Single\nAdjusted Gross Income: $72,000\nTaxable Income: $59,150\nFederal Tax Withheld: $11,800\nRefund Amount: $950\nDeductions: Standard deduction of $12,950\n401(k) Contributions: $5,500\nHealth Insurance Premiums: $3,400",
     "metadata": {
@@ -27,6 +30,7 @@
     }
   },
   {
+    "id": "c9f58d7a-5f68-4329-9daa-8d3622de1b7f",
     "title": "Tax Return 2023 - ABC Corporation",
     "content": "Tax Year: 2023\nCompany: ABC Corporation\nEIN: 12-3456789\nGross Receipts: $2,500,000\nTotal Income: $2,450,000\nDeductible Expenses: $1,800,000\nTaxable Income: $650,000\nFederal Tax: $136,500\nEstimated Tax Payments: $140,000\nRefund Due: $3,500\nEmployees: 25\nR&D Tax Credit: $15,000",
     "metadata": {
@@ -36,6 +40,7 @@
     }
   },
   {
+    "id": "e1170f9c-7180-454b-bf1c-af5844f03d91",
     "title": "Tax Return 2023 - Michael Johnson",
     "content": "Tax Year: 2023\nTaxpayer: Michael Johnson\nFiling Status: Head of Household\nDependents: 2 children\nAdjusted Gross Income: $85,000\nTaxable Income: $64,300\nFederal Tax Withheld: $14,000\nChild Tax Credit: $4,000\nEarned Income Credit: $2,100\nRefund Amount: $6,500\nEducation Expenses: $8,000",
     "metadata": {

@@ -8,3 +8,4 @@ data/
 *.db
 data/vector_store.db
 bin/
+llm-rag-poc
