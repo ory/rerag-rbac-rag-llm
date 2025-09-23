@@ -199,6 +199,19 @@ func (s *Server) handlePermissions(w http.ResponseWriter, r *http.Request) {
 	s.writer.Write(w, r, response)
 }
 
+// GetHandler returns the HTTP handler for the server
+func (s *Server) GetHandler() http.Handler {
+	return loggingMiddleware(s.mux)
+}
+
+// Shutdown gracefully shuts down the server
+func (s *Server) Shutdown(timeout time.Duration) error {
+	log.Printf("Server shutdown initiated with timeout: %v", timeout)
+	// In a more complex implementation, you might close database connections,
+	// stop background workers, etc.
+	return nil
+}
+
 func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("%s %s %s", r.Method, r.RequestURI, r.RemoteAddr)

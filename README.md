@@ -66,6 +66,8 @@ This will:
 3. Load sample tax documents
 4. Run permission-aware queries showing different results per user
 
+See `config.example.yaml` for all configuration options.
+
 ## Why this matters
 
 Standard RAG pulls all matching documents into context, then relies on the LLM
@@ -78,6 +80,8 @@ architecture:
 - **No prompt injection**: Users can't trick the LLM into revealing data they
   shouldn't see
 - **Audit-ready**: Every permission check is logged and traceable
+- **Transport security**: Optional TLS/HTTPS encryption
+- **Data at rest**: Optional SQLite database encryption
 
 ## Tech stack
 
@@ -87,8 +91,10 @@ All open source, runs locally:
   permissions
 - **[Ollama](https://ollama.ai/)**: Local LLM runner (Llama3 for inference,
   nomic for embeddings)
-- **[SQLite](https://www.sqlite.org/)**: Persistent vector storage
+- **[SQLite](https://www.sqlite.org/)**: Persistent vector storage with optional
+  encryption
 - **Go**: For performance and hackability
+- **TLS/HTTPS**: Optional SSL encryption for secure transport
 
 ## How it works
 
@@ -147,19 +153,94 @@ curl -X POST localhost:8080/query \
 curl localhost:8080/permissions -H "Authorization: Bearer alice"
 ```
 
-## Project structure
+## Configuration
 
-```
-internal/
-├── api/          # REST handlers
-├── permissions/  # Keto ReBAC integration
-├── storage/      # SQLite vector store
-└── llm/          # Ollama client
+ReRAG supports flexible configuration via config files and environment
+variables.
 
-keto/            # Permission definitions
-scripts/         # Setup utilities
-examples/        # Test scenarios
+### Config File
+
+Create a `config.yaml` file for persistent settings:
+
+```yaml
+# Server configuration
+server:
+  host: 'localhost'
+  port: 8080
+  tls:
+    enabled: false # Set to true for HTTPS
+    cert_file: 'certs/cert.pem'
+    key_file: 'certs/key.pem'
+    min_version: '1.3' # TLS 1.2 or 1.3
+
+# Database configuration
+database:
+  path: 'vector_store.db'
+  encryption:
+    enabled: false # Set to true for SQLite encryption
+    key: '' # Your encryption key
+
+# Security settings
+security:
+  error_mode: 'detailed' # "detailed" or "secure"
+
+# Application settings
+app:
+  environment: 'development' # "development", "staging", "production"
+  log_level: 'info' # "debug", "info", "warn", "error"
 ```
+
+### Environment Variables
+
+Override any setting with environment variables:
+
+```bash
+# Enable HTTPS
+export SERVER_TLS_ENABLED=true
+export SERVER_TLS_CERT_FILE=certs/cert.pem
+export SERVER_TLS_KEY_FILE=certs/key.pem
+
+# Enable database encryption
+export DATABASE_ENCRYPTION_ENABLED=true
+export DATABASE_ENCRYPTION_KEY=your-secret-key
+
+# Production settings
+export APP_ENVIRONMENT=production
+export SECURITY_ERROR_MODE=secure
+```
+
+### SSL/TLS Setup
+
+For HTTPS support, generate certificates:
+
+```bash
+# Development certificates (not for production!)
+mkdir certs
+openssl req -x509 -newkey rsa:4096 -keyout certs/key.pem \
+  -out certs/cert.pem -days 365 -nodes \
+  -subj "/CN=localhost"
+
+# Enable in config
+echo "server:" > config.yaml
+echo "  tls:" >> config.yaml
+echo "    enabled: true" >> config.yaml
+echo "    cert_file: certs/cert.pem" >> config.yaml
+echo "    key_file: certs/key.pem" >> config.yaml
+```
+
+### Database Encryption
+
+Enable SQLite encryption for data at rest:
+
+```yaml
+database:
+  encryption:
+    enabled: true
+    key: 'your-32-character-encryption-key'
+```
+
+⚠️ **Important**: Store encryption keys securely using environment variables or
+key management systems in production.
 
 ## Future work
 
@@ -180,6 +261,9 @@ This is a working reference, not production code. Ideas for extensions:
 | Ollama connection refused | Run `ollama serve`                                       |
 | Models missing            | Run `ollama pull llama3 && ollama pull nomic-embed-text` |
 | Keto not running          | Check with `curl localhost:4467/health/ready`            |
+| TLS certificate errors    | Check cert file paths and permissions                    |
+| Database encryption fails | Verify encryption key and SQLite encryption support      |
+| Config validation errors  | Check required fields when features are enabled          |
 
 ## Contributing
 

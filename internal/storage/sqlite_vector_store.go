@@ -25,14 +25,21 @@ type scoredDoc struct {
 }
 
 // NewSQLiteVectorStore creates a new SQLite-based vector store
-func NewSQLiteVectorStore(dbPath string) (*SQLiteVectorStore, error) {
-	db, err := sql.Open("sqlite3", dbPath)
+func NewSQLiteVectorStore(dsn string) (*SQLiteVectorStore, error) {
+	db, err := sql.Open("sqlite3", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
+	// Test the connection
+	if err := db.Ping(); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
+	}
+
 	store := &SQLiteVectorStore{db: db}
 	if err := store.initDB(); err != nil {
+		db.Close()
 		return nil, fmt.Errorf("failed to initialize database: %w", err)
 	}
 
@@ -51,7 +58,6 @@ func (s *SQLiteVectorStore) initDB() error {
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);
 
-	CREATE INDEX IF NOT EXISTS idx_documents_title ON documents(title);
 	CREATE INDEX IF NOT EXISTS idx_documents_created_at ON documents(created_at);
 	`
 
