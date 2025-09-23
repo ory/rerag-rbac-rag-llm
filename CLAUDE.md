@@ -14,7 +14,7 @@ vector search, and LLM-powered query answering.
 ```bash
 make test        # Run all tests
 make lint        # Run golangci-lint
-make format      # Format code with gofmt and goimports
+make format      # Format code with gofmt, goimports, and prettier for markdown
 ```
 
 ### Development Workflow
@@ -22,7 +22,9 @@ make format      # Format code with gofmt and goimports
 ```bash
 make dev         # Start Keto and app in tmux
 make setup       # Setup permissions and load sample documents
-make clean       # Clean up all resources
+make demo        # Run interactive demo showing permission-aware queries
+make reset       # Full reset (clean + remove all data)
+make quick-start # One-liner setup and demo (install + dev + demo)
 ```
 
 ## Code Standards
@@ -32,7 +34,7 @@ make clean       # Clean up all resources
 - **Go version**: 1.24
 - **Module name**: `llm-rag-poc`
 - **Package structure**: All internal packages under `/internal/`
-- **Testing**: Comprehensive unit tests with mocks, E2E tests, benchmark tests
+- **Testing**: Comprehensive unit tests with mocks, E2E tests
 - **Error handling**: Use Ory Herodot for HTTP responses
 - **Interfaces**: Define interfaces for all external dependencies (embedder,
   LLM, storage, permissions)
@@ -59,8 +61,8 @@ make clean       # Clean up all resources
 - **Embeddings** (`/internal/embeddings/`): Ollama with nomic-embed-text model
 - **LLM Client** (`/internal/llm/`): Ollama with llama3 model
 - **Permissions** (`/internal/permissions/`): Ory Keto ReBAC integration
-- **Storage** (`/internal/storage/`): In-memory vector store with cosine
-  similarity
+- **Storage** (`/internal/storage/`): SQLite-based persistent vector store with
+  cosine similarity
 
 ### Permission Model
 
@@ -88,8 +90,7 @@ The system uses ReBAC with three test users:
 ### Adding New Features
 
 "Add a new endpoint for [feature]. Follow the existing patterns in
-/internal/api/server.go, include comprehensive tests, and update the Swagger
-annotations."
+/internal/api/server.go and include comprehensive tests."
 
 ### Refactoring
 
@@ -103,24 +104,25 @@ server_test.go. Include unit tests with mocks and permission-based scenarios."
 
 ### Documentation
 
-"Update documentation for [feature]. Include Swagger annotations, inline
-comments for complex logic, and update the README if needed."
+"Update documentation for [feature]. Include inline comments for complex logic
+and update the README if needed."
 
 ## Key Files & Directories
 
 ```
 /internal/api/          # API handlers and tests
   server.go            # Main server implementation
-  server_test.go       # Unit tests with mocks (647 lines)
-  e2e_test.go         # End-to-end tests (492 lines)
-  query_test.go       # Query scenario tests (329 lines)
+  server_test.go       # Unit tests with mocks (655 lines)
+  e2e_test.go         # End-to-end tests (503 lines)
+  query_test.go       # Query scenario tests (309 lines)
 
 /internal/permissions/ # ReBAC integration
   keto.go             # Ory Keto client
   service.go          # Permission service interface
 
 /internal/storage/     # Vector storage
-  memory.go           # In-memory implementation
+  sqlite_vector_store.go  # SQLite-based implementation
+  vector_store.go         # Storage interface
 
 /keto/                # Keto configuration
   config.yml         # Server config
@@ -159,7 +161,7 @@ Always test with different user contexts:
 ## Gotchas & Important Notes
 
 1. **Authentication**: Uses simple Bearer token for demo (not production-ready)
-2. **Storage**: In-memory vector store - data lost on restart
+2. **Storage**: SQLite-based vector store - data persists across restarts
 3. **Embedding Model**: Requires Ollama with nomic-embed-text model pulled
 4. **LLM Model**: Requires Ollama with llama3 model pulled
 5. **Concurrent Access**: Storage uses mutex for thread safety

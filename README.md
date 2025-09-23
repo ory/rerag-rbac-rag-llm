@@ -1,11 +1,12 @@
 # ReRAG - ReBAC + RAG
 
-RAG (Retrieval-Augmented Generation) lets LLMs answer questions about
-documents by fetching relevant content and adding it to the prompt. It's
-everywhere: customer support, enterprise search, legal discovery. But RAG
-doesn't work in multi-user contexts where different users have different
-permissions. This repository shows how to fix it with ReBAC (relationship based access control) using Ollama and Ory
-Keto, an open source Google Zanzibar implementation.
+RAG (Retrieval-Augmented Generation) lets LLMs answer questions about documents
+by fetching relevant content and adding it to the prompt. It's everywhere:
+customer support, enterprise search, legal discovery. But RAG doesn't work in
+multi-user contexts where different users have different permissions. This
+repository shows how to fix it with ReBAC (relationship based access control)
+using [Ollama](https://ollama.com) and [Ory Keto](https://github.com/ory/keto),
+an open source Google Zanzibar implementation.
 
 **TL;DR**: Most RAG systems leak private data across users. This repo
 demonstrates permission-aware RAG that guarantees the LLM never sees
@@ -14,7 +15,7 @@ it, extend it.
 
 ## The Problem & Solution
 
-### Before (Naive RAG)
+### RAG only
 
 ```bash
 # Alice queries the system
@@ -23,7 +24,7 @@ curl -X POST /query -H "Auth: bad-actor" \
 # Response: "$8,500 for John Doe and $45,000 for ABC Corp"  ❌ DATA LEAK
 ```
 
-### After (ReRAG - ReBAC-powered RAG)
+### With ReRAG (ReBAC-powered RAG)
 
 ```bash
 # Alice queries (can only see John Doe's docs)
@@ -42,10 +43,10 @@ curl -X POST /query -H "Auth: bad-actor" \
 # Response: "You don't have access to any tax returns."  ✅
 ```
 
-The model never sees text the user isn't authorized for. No prompt
-injection can leak it.
+The model never sees text the user isn't authorized for. No prompt injection can
+leak it.
 
-## Quick Demo
+## Quick demo
 
 ```bash
 # See it in action (requires Go, tmux, curl)
@@ -60,12 +61,12 @@ make demo
 
 This will:
 
-1. Install dependencies (Ollama, Keto)
+1. Install dependencies (Ollama, Ory Keto)
 2. Start services
 3. Load sample tax documents
 4. Run permission-aware queries showing different results per user
 
-## Why This Matters
+## Why this matters
 
 Standard RAG pulls all matching documents into context, then relies on the LLM
 to "respect" permissions. That's a compliance nightmare waiting to happen. This
@@ -74,9 +75,11 @@ architecture:
 - **Filters at retrieval**: Only authorized documents enter the vector search
   results
 - **Never leaks**: Unauthorized content never reaches the LLM context window
+- **No prompt injection**: Users can't trick the LLM into revealing data they
+  shouldn't see
 - **Audit-ready**: Every permission check is logged and traceable
 
-## Tech Stack
+## Tech stack
 
 All open source, runs locally:
 
@@ -87,18 +90,39 @@ All open source, runs locally:
 - **[SQLite](https://www.sqlite.org/)**: Persistent vector storage
 - **Go**: For performance and hackability
 
-## How It Works
+## How it works
 
 ```mermaid
-graph LR
-    A[User Query] --> B[Auth Check]
-    B --> C[Vector Search]
-    C --> D[Permission Filter]
-    D --> E[✅ Authorized Docs Only]
-    E --> F[LLM Processing]
-    F --> G[Safe Response]
+graph TD
 
-    H[❌ Unauthorized Docs] --> I[Never Seen by LLM]
+    %% ------------------------
+    %% Add documents flow
+    %% ------------------------
+    subgraph ADD["📥 Document Management"]
+      AA["New Document (POST /documents)"]
+      AA --> H["Permission Assignment (Ory Keto)"]
+      AA --> DD["Generate Embeddings"]
+      DD --> I
+    end
+
+    %% ------------------------
+    %% Query flow
+    %% ------------------------
+    subgraph QUERY["🔎 Query Documents"]
+      A["📝 User Query"]
+      A --> B["🔒 Auth Middleware"]
+      B --> D["🔍 Vector Search"]
+      D --> E["🛂 Permission Check"]
+      E --> F["🤖 LLM Processing"]
+      F --> G["✅ Secure Response"]
+      I["SQLite Vector Store (Embeddings)"]
+      J["Ollama / Llama3 (LLM)"]
+    end
+
+    %% Wiring external systems
+    H --> E
+    I --> D
+    J --> F
 ```
 
 1. **Upload**: Documents tagged with owner metadata
@@ -107,7 +131,7 @@ graph LR
 4. **Filter**: Only docs the user can access are retrieved
 5. **Answer**: LLM processes authorized subset only
 
-## API Examples
+## API examples
 
 ```bash
 # Upload document
@@ -123,7 +147,7 @@ curl -X POST localhost:8080/query \
 curl localhost:8080/permissions -H "Authorization: Bearer alice"
 ```
 
-## Project Structure
+## Project structure
 
 ```
 internal/
@@ -137,17 +161,19 @@ scripts/         # Setup utilities
 examples/        # Test scenarios
 ```
 
-## Extending This
+## Future work
 
 This is a working reference, not production code. Ideas for extensions:
 
-- **Real Auth**: Replace mock tokens with OAuth2/OIDC (Ory Hydra works great
-  with Keto)
+- **Real Auth**: Replace mock tokens with OAuth2/OIDC ([Ory Hydra] works great
+  with Ory Keto)
 - **Scale Storage**: Swap SQLite for Pinecone/Weaviate/pgvector
 - **Audit Trail**: Add comprehensive logging for compliance
-- **Multi-tenancy**: Extend permission model for organizations
+- **Reverse Expand**: Instead of using vector search to filter, use Keto to
+  pre-filter document IDs
+- **UI**: Build a simple web interface for uploading/querying documents
 
-## Common Issues
+## Common issues
 
 | Problem                   | Solution                                                 |
 | ------------------------- | -------------------------------------------------------- |
