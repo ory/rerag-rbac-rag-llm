@@ -81,6 +81,15 @@ func (m *MockVectorStore) AddDocument(doc *models.Document) error {
 	return nil
 }
 
+func (m *MockVectorStore) UpsertDocument(doc *models.Document) error {
+	if m.shouldFail {
+		return &VectorStoreError{Message: "mock vector store error"}
+	}
+	// Upsert: insert or update
+	m.documents[doc.ID] = doc
+	return nil
+}
+
 func (m *MockVectorStore) GetAllDocuments() []models.Document {
 	var result []models.Document
 	for _, doc := range m.documents {

@@ -9,6 +9,11 @@ import (
 	"llm-rag-poc/internal/config"
 )
 
+const (
+	// ErrorModeSecure indicates errors should be sanitized for production
+	ErrorModeSecure = "secure"
+)
+
 // ErrorResponse represents a standardized API error response
 type ErrorResponse struct {
 	Code    int    `json:"code"`
@@ -36,7 +41,7 @@ func NewErrorHandler(cfg *config.Config) *ErrorHandler {
 func (h *ErrorHandler) HandleAuthError(w http.ResponseWriter, r *http.Request, err error, requestID string) {
 	var response ErrorResponse
 
-	if h.config.Security.ErrorMode == "secure" || h.config.IsProduction() {
+	if h.config.Security.ErrorMode == ErrorModeSecure || h.config.IsProduction() {
 		// In secure mode, provide minimal information to prevent user enumeration
 		response = ErrorResponse{
 			Code:      http.StatusUnauthorized,
@@ -63,7 +68,7 @@ func (h *ErrorHandler) HandleAuthError(w http.ResponseWriter, r *http.Request, e
 func (h *ErrorHandler) HandleAuthorizationError(w http.ResponseWriter, r *http.Request, err error, requestID string) {
 	var response ErrorResponse
 
-	if h.config.Security.ErrorMode == "secure" || h.config.IsProduction() {
+	if h.config.Security.ErrorMode == ErrorModeSecure || h.config.IsProduction() {
 		response = ErrorResponse{
 			Code:      http.StatusForbidden,
 			Status:    "Forbidden",
@@ -88,7 +93,7 @@ func (h *ErrorHandler) HandleAuthorizationError(w http.ResponseWriter, r *http.R
 func (h *ErrorHandler) HandleValidationError(w http.ResponseWriter, r *http.Request, err error, requestID string) {
 	var response ErrorResponse
 
-	if h.config.Security.ErrorMode == "secure" || h.config.IsProduction() {
+	if h.config.Security.ErrorMode == ErrorModeSecure || h.config.IsProduction() {
 		response = ErrorResponse{
 			Code:      http.StatusBadRequest,
 			Status:    "Bad Request",
@@ -119,7 +124,7 @@ func (h *ErrorHandler) HandleInternalError(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Never expose internal error details in production
-	if h.config.IsDevelopment() && h.config.Security.ErrorMode != "secure" {
+	if h.config.IsDevelopment() && h.config.Security.ErrorMode != ErrorModeSecure {
 		response.Details = err.Error()
 	}
 
@@ -131,7 +136,7 @@ func (h *ErrorHandler) HandleInternalError(w http.ResponseWriter, r *http.Reques
 func (h *ErrorHandler) HandleNotFoundError(w http.ResponseWriter, r *http.Request, resource string, requestID string) {
 	var response ErrorResponse
 
-	if h.config.Security.ErrorMode == "secure" || h.config.IsProduction() {
+	if h.config.Security.ErrorMode == ErrorModeSecure || h.config.IsProduction() {
 		response = ErrorResponse{
 			Code:      http.StatusNotFound,
 			Status:    "Not Found",
@@ -174,7 +179,7 @@ func (h *ErrorHandler) HandleDatabaseError(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Only show database errors in development
-	if h.config.IsDevelopment() && h.config.Security.ErrorMode != "secure" {
+	if h.config.IsDevelopment() && h.config.Security.ErrorMode != ErrorModeSecure {
 		response.Details = err.Error()
 	}
 
@@ -191,7 +196,7 @@ func (h *ErrorHandler) HandleServiceError(w http.ResponseWriter, r *http.Request
 		RequestID: h.getRequestID(requestID),
 	}
 
-	if h.config.IsDevelopment() && h.config.Security.ErrorMode != "secure" {
+	if h.config.IsDevelopment() && h.config.Security.ErrorMode != ErrorModeSecure {
 		response.Message = "Service unavailable: " + service
 		response.Details = err.Error()
 	}

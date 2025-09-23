@@ -3,6 +3,7 @@ package storage
 import (
 	"llm-rag-poc/internal/models"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -66,11 +67,9 @@ func testSearchSimilar(t *testing.T, store *SQLiteVectorStore) {
 
 func testSearchSimilarWithFilter(t *testing.T, store *SQLiteVectorStore) {
 	queryEmbedding := []float32{0.15, 0.25, 0.35}
+	// Filter for documents with "Test" in the title
 	filter := func(doc *models.Document) bool {
-		if category, ok := doc.Metadata["category"].(string); ok {
-			return category == "test"
-		}
-		return false
+		return strings.Contains(doc.Title, "Test")
 	}
 
 	filteredResults, err := store.SearchSimilarWithFilter(queryEmbedding, 2, filter)
@@ -83,11 +82,9 @@ func testSearchSimilarWithFilter(t *testing.T, store *SQLiteVectorStore) {
 }
 
 func testGetFilteredDocuments(t *testing.T, store *SQLiteVectorStore) {
+	// Filter for documents with "priority" in the content
 	priorityFilter := func(doc *models.Document) bool {
-		if priority, ok := doc.Metadata["priority"].(float64); ok {
-			return priority == 1
-		}
-		return false
+		return strings.Contains(strings.ToLower(doc.Content), "priority")
 	}
 
 	priorityDocs := store.GetFilteredDocuments(priorityFilter)
@@ -97,14 +94,14 @@ func testGetFilteredDocuments(t *testing.T, store *SQLiteVectorStore) {
 }
 
 func createTestDocument(title, content string, embedding []float32, priority int) *models.Document {
+	// Add priority marker to content if priority is 1
+	if priority == 1 {
+		content += " (priority document)"
+	}
 	return &models.Document{
 		Title:     title,
 		Content:   content,
 		Embedding: embedding,
-		Metadata: map[string]interface{}{
-			"category": "test",
-			"priority": priority,
-		},
 	}
 }
 

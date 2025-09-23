@@ -8,7 +8,8 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"strings"
+
+	"github.com/google/uuid"
 )
 
 // KetoPermissionService implements permission checking using Ory Keto
@@ -27,20 +28,18 @@ func NewKetoPermissionService(readURL, writeURL string) *KetoPermissionService {
 
 // CanAccessDocument checks if a user can access a specific document
 func (k *KetoPermissionService) CanAccessDocument(username string, doc *models.Document) bool {
-	// Map document to Keto object based on taxpayer and year
-	objectID := k.documentToKetoObject(doc)
-	if objectID == "" {
-		log.Printf("Warning: Could not map document %s to Keto object", doc.Title)
-		return false
-	}
+	return k.canAccessDocumentByID(username, doc.ID)
+}
 
+// canAccessDocumentByID checks if a user can access a document by its ID
+func (k *KetoPermissionService) canAccessDocumentByID(username string, docID uuid.UUID) bool {
 	// Build the check URL
 	checkURL := fmt.Sprintf("%s/relation-tuples/check/openapi", k.readURL)
 
-	// Create query parameters
+	// Create query parameters using document ID as the object
 	params := url.Values{}
 	params.Add("namespace", "documents")
-	params.Add("object", objectID)
+	params.Add("object", docID.String())
 	params.Add("relation", "viewer")
 	params.Add("subject_id", username)
 
@@ -54,7 +53,7 @@ func (k *KetoPermissionService) CanAccessDocument(username string, doc *models.D
 
 	resp, err := http.Get(fullURL) // #nosec G107 - URL is validated above
 	if err != nil {
-		log.Printf("Error checking permission for user %s on object %s: %v", username, objectID, err)
+		log.Printf("Error checking permission for user %s on document %s: %v", username, docID, err)
 		return false
 	}
 	defer func() { _ = resp.Body.Close() }()
@@ -75,19 +74,8 @@ func (k *KetoPermissionService) CanAccessDocument(username string, doc *models.D
 		return result.Allowed
 	}
 
-	log.Printf("Keto permission check returned status %d for user %s on object %s", resp.StatusCode, username, objectID)
+	log.Printf("Keto permission check returned status %d for user %s on document %s", resp.StatusCode, username, docID)
 	return false
-}
-
-// FilterDocuments returns only documents the user has permission to access
-func (k *KetoPermissionService) FilterDocuments(username string, docs []*models.Document) []*models.Document {
-	filtered := make([]*models.Document, 0)
-	for _, doc := range docs {
-		if k.CanAccessDocument(username, doc) {
-			filtered = append(filtered, doc)
-		}
-	}
-	return filtered
 }
 
 // GetUserPermissions retrieves all permissions for a given user
@@ -141,30 +129,4 @@ func (k *KetoPermissionService) GetUserPermissions(username string) []string {
 	}
 
 	return permissions
-}
-
-// AddUserPermission grants a user permission to access documents for a taxpayer
-func (k *KetoPermissionService) AddUserPermission(_ string, _ string) {
-	// Convert taxpayer to potential Keto objects and create relation tuples
-	// This is a simplified implementation
-	log.Printf("AddUserPermission not fully implemented for Keto service")
-}
-
-// documentToKetoObject maps a document to a Keto object identifier
-func (k *KetoPermissionService) documentToKetoObject(doc *models.Document) string {
-	if taxpayer, ok := doc.Metadata["taxpayer"].(string); ok {
-		year := "unknown"
-		if y, ok := doc.Metadata["year"].(float64); ok {
-			year = fmt.Sprintf("%.0f", y)
-		} else if y, ok := doc.Metadata["year"].(int); ok {
-			year = fmt.Sprintf("%d", y)
-		}
-
-		// Normalize taxpayer name to kebab-case
-		taxpayerKey := strings.ToLower(strings.ReplaceAll(taxpayer, " ", "-"))
-
-		return fmt.Sprintf("%s:%s", taxpayerKey, year)
-	}
-
-	return ""
 }

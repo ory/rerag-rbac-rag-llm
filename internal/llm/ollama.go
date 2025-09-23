@@ -70,6 +70,7 @@ func (o *OllamaClient) buildPrompt(question string, documents []models.Document)
 	for i, doc := range documents {
 		contextStr.WriteString(fmt.Sprintf("\nDocument %d: %s\n", i+1, doc.Title))
 		contextStr.WriteString(fmt.Sprintf("Content: %s\n", doc.Content))
+		contextStr.WriteString(fmt.Sprintf("ID: %s\n", doc.ID.String()))
 		if len(doc.Metadata) > 0 {
 			contextStr.WriteString("Metadata: ")
 			for k, v := range doc.Metadata {

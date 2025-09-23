@@ -101,7 +101,8 @@ func (s *Server) addDocument(w http.ResponseWriter, r *http.Request) {
 	}
 
 	doc.Embedding = embedding
-	if err := s.vectorStore.AddDocument(&doc); err != nil {
+
+	if err := s.vectorStore.UpsertDocument(&doc); err != nil {
 		s.writer.WriteError(w, r, herodot.ErrInternalServerError.WithReason("Failed to store document"))
 		return
 	}

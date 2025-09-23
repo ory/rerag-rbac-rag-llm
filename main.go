@@ -27,14 +27,34 @@ func main() {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
+	logConfig(cfg)
+
+	// Initialize components
+	vectorStore, server := initializeComponents(cfg)
+	defer func() {
+		if err := vectorStore.Close(); err != nil {
+			log.Printf("Error closing vector store: %v", err)
+		}
+	}()
+
+	// Create and start HTTP server
+	httpServer := createHTTPServer(cfg, server)
+	startHTTPServer(cfg, httpServer)
+
+	log.Println("Server started successfully")
+
+	// Wait for shutdown signal
+	waitForShutdown(server)
+}
+
+func logConfig(cfg *config.Config) {
 	log.Printf("Environment: %s", cfg.App.Environment)
 	log.Printf("Log Level: %s", cfg.App.LogLevel)
 	log.Printf("TLS Enabled: %v", cfg.Server.TLS.Enabled)
 	log.Printf("Database Encryption: %v", cfg.Database.Encryption.Enabled)
+}
 
-	// Error handler will be used in future API improvements
-	_ = cfg // TODO: Use error handler in API server
-
+func initializeComponents(cfg *config.Config) (*storage.SQLiteVectorStore, *api.Server) {
 	// Initialize embeddings client
 	embedder := embeddings.NewEmbedder()
 
@@ -49,11 +69,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to initialize vector store: %v", err)
 	}
-	defer func() {
-		if err := vectorStore.Close(); err != nil {
-			log.Printf("Error closing vector store: %v", err)
-		}
-	}()
 
 	// Initialize LLM client
 	ollama := llm.NewOllamaClient(cfg.Services.Ollama.BaseURL, cfg.Services.Ollama.LLMModel)
@@ -67,25 +82,26 @@ func main() {
 	// Initialize API server
 	server := api.NewServer(embedder, vectorStore, ollama, permService)
 
-	// Create HTTP server
-	httpServer := &http.Server{
+	return vectorStore, server
+}
+
+func createHTTPServer(cfg *config.Config, server *api.Server) *http.Server {
+	return &http.Server{
 		Addr:         fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port),
 		Handler:      server.GetHandler(),
 		ReadTimeout:  time.Duration(cfg.Server.ReadTimeout) * time.Second,
 		WriteTimeout: time.Duration(cfg.Server.WriteTimeout) * time.Second,
+		TLSConfig:    cfg.GetTLSConfig(),
 	}
+}
 
-	// Configure TLS if enabled
+func startHTTPServer(cfg *config.Config, httpServer *http.Server) {
 	if cfg.Server.TLS.Enabled {
 		log.Printf("Starting HTTPS server on %s", httpServer.Addr)
 		log.Printf("TLS Cert: %s", cfg.Server.TLS.CertFile)
 		log.Printf("TLS Key: %s", cfg.Server.TLS.KeyFile)
 		log.Printf("Min TLS Version: %s", cfg.Server.TLS.MinTLS)
 
-		// Configure TLS
-		httpServer.TLSConfig = cfg.GetTLSConfig()
-
-		// Start server with TLS
 		go func() {
 			if err := httpServer.ListenAndServeTLS(cfg.Server.TLS.CertFile, cfg.Server.TLS.KeyFile); err != nil && err != http.ErrServerClosed {
 				log.Fatalf("Failed to start HTTPS server: %v", err)
@@ -97,16 +113,15 @@ func main() {
 			log.Println("WARNING: Running HTTP in production. Consider enabling TLS.")
 		}
 
-		// Start server without TLS
 		go func() {
 			if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 				log.Fatalf("Failed to start HTTP server: %v", err)
 			}
 		}()
 	}
+}
 
-	log.Println("Server started successfully")
-
+func waitForShutdown(server *api.Server) {
 	// Wait for interrupt signal to gracefully shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)

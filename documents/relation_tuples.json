@@ -1,49 +1,49 @@
 [
   {
     "namespace": "documents",
-    "object": "john-doe:2022",
-    "relation": "viewer",
-    "subject_id": "alice"
-  },
-  {
-    "namespace": "documents", 
-    "object": "john-doe:2023",
+    "object": "a7d36b58-3d46-4107-9b88-6b1400bc9a5d",
     "relation": "viewer",
     "subject_id": "alice"
   },
   {
     "namespace": "documents",
-    "object": "abc-corporation:2023", 
+    "object": "b8e47c69-4e57-4218-8c99-7c2511cd0a6e",
+    "relation": "viewer",
+    "subject_id": "alice"
+  },
+  {
+    "namespace": "documents",
+    "object": "c9f58d7a-5f68-4329-9daa-8d3622de1b7f",
     "relation": "viewer",
     "subject_id": "bob"
   },
   {
     "namespace": "documents",
-    "object": "john-doe:2022",
-    "relation": "viewer", 
-    "subject_id": "peter"
-  },
-  {
-    "namespace": "documents",
-    "object": "john-doe:2023",
+    "object": "a7d36b58-3d46-4107-9b88-6b1400bc9a5d",
     "relation": "viewer",
     "subject_id": "peter"
   },
   {
     "namespace": "documents",
-    "object": "jane-smith:2023",
+    "object": "b8e47c69-4e57-4218-8c99-7c2511cd0a6e",
     "relation": "viewer",
     "subject_id": "peter"
   },
   {
     "namespace": "documents",
-    "object": "abc-corporation:2023",
+    "object": "d0069e8b-6079-443a-ae0b-9e4733ef2c80",
     "relation": "viewer",
     "subject_id": "peter"
   },
   {
-    "namespace": "documents", 
-    "object": "michael-johnson:2023",
+    "namespace": "documents",
+    "object": "c9f58d7a-5f68-4329-9daa-8d3622de1b7f",
+    "relation": "viewer",
+    "subject_id": "peter"
+  },
+  {
+    "namespace": "documents",
+    "object": "e1170f9c-7180-454b-bf1c-af5844f03d91",
     "relation": "viewer",
     "subject_id": "peter"
   }

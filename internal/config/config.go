@@ -164,7 +164,7 @@ func setDefaults(k *koanf.Koanf) {
 	}
 
 	for key, value := range defaults {
-		k.Set(key, value)
+		_ = k.Set(key, value) // Ignore error for setting defaults
 	}
 }
 
@@ -225,6 +225,7 @@ func (c *Config) GetTLSConfig() *tls.Config {
 	}
 
 	tlsConfig := &tls.Config{
+		MinVersion: tls.VersionTLS12, // Set default minimum version
 		CipherSuites: []uint16{
 			tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
 			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
