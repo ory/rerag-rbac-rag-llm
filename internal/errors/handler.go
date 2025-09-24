@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-	"llm-rag-poc/internal/config"
+	"rerag-rbac-rag-llm/internal/config"
 )
 
 const (

@@ -32,7 +32,7 @@ make quick-start # One-liner setup and demo (install + dev + demo)
 ### Go Conventions
 
 - **Go version**: 1.24
-- **Module name**: `llm-rag-poc`
+- **Module name**: `rerag-rbac-rag-llm`
 - **Package structure**: All internal packages under `/internal/`
 - **Testing**: Comprehensive unit tests with mocks, E2E tests
 - **Error handling**: Use Ory Herodot for HTTP responses

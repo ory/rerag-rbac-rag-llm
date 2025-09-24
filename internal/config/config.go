@@ -134,14 +134,14 @@ func setDefaults(k *koanf.Koanf) {
 	defaults := map[string]interface{}{
 		// Server defaults
 		"server.host":            "localhost",
-		"server.port":            8080,
+		"server.port":            4477,
 		"server.read_timeout":    30,
 		"server.write_timeout":   30,
 		"server.tls.enabled":     false,
 		"server.tls.min_version": "1.3",
 
 		// Database defaults
-		"database.path":               "data/vector_store.db",
+		"database.path":               "data/vector_store.db?mode=rwc",
 		"database.encryption.enabled": false,
 
 		// Services defaults

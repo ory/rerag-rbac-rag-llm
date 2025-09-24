@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# Strict error handling for CI/CD
 set -euo pipefail
 
 # Colors for output
@@ -42,7 +41,7 @@ check_dependencies() {
 
 # Check if server is running
 check_server() {
-    if ! curl -s http://localhost:8080/health > /dev/null 2>&1; then
+    if ! curl -s http://localhost:4477/health > /dev/null 2>&1; then
         print_error "Server not running. Please run 'make dev' in another terminal first."
         exit 1
     fi
@@ -80,9 +79,9 @@ main() {
 
     # Alice's query
     print_scenario "Alice queries the system (authorized for John Doe only):"
-    echo -e "Command: ${BOLD}curl -X POST localhost:8080/query -H \"Auth: Bearer alice\" -d '$QUERY'${NC}"
+    echo -e "Command: ${BOLD}curl -X POST localhost:4477/query -H \"Auth: Bearer alice\" -d '$QUERY'${NC}"
 
-    ALICE_RESPONSE=$(curl -s -X POST http://localhost:8080/query \
+    ALICE_RESPONSE=$(curl -s -X POST http://localhost:4477/query \
         -H "Authorization: Bearer alice" \
         -H "Content-Type: application/json" \
         -d "$QUERY" | jq -r '.answer // .error // "No response"')
@@ -100,9 +99,9 @@ main() {
     QUERY='{"question": "What was the total refund amount for 2023 for ABC Corp?"}'
     # Bob's query
     print_scenario "Bob queries the system (authorized for ABC Corp only):"
-    echo -e "Command: ${BOLD}curl -X POST localhost:8080/query -H \"Auth: Bearer bob\" -d '$QUERY'${NC}"
+    echo -e "Command: ${BOLD}curl -X POST localhost:4477/query -H \"Auth: Bearer bob\" -d '$QUERY'${NC}"
 
-    BOB_RESPONSE=$(curl -s -X POST http://localhost:8080/query \
+    BOB_RESPONSE=$(curl -s -X POST http://localhost:4477/query \
         -H "Authorization: Bearer bob" \
         -H "Content-Type: application/json" \
         -d "$QUERY" | jq -r '.answer // .error // "No response"')
@@ -119,9 +118,9 @@ main() {
 
     # Peter's query (admin)
     print_scenario "Peter queries the system (admin with full access):"
-    echo -e "Command: ${BOLD}curl -X POST localhost:8080/query -H \"Auth: Bearer peter\" -d '$QUERY'${NC}"
+    echo -e "Command: ${BOLD}curl -X POST localhost:4477/query -H \"Auth: Bearer peter\" -d '$QUERY'${NC}"
 
-    PETER_RESPONSE=$(curl -s -X POST http://localhost:8080/query \
+    PETER_RESPONSE=$(curl -s -X POST http://localhost:4477/query \
         -H "Authorization: Bearer peter" \
         -H "Content-Type: application/json" \
         -d "$QUERY" | jq -r '.answer // .error // "No response"')
@@ -138,9 +137,9 @@ main() {
 
     # Unauthorized query
     print_scenario "Unauthorized user tries to query:"
-    echo -e "Command: ${BOLD}curl -X POST localhost:8080/query -H \"Auth: Bearer hacker\" -d '$QUERY'${NC}"
+    echo -e "Command: ${BOLD}curl -X POST localhost:4477/query -H \"Auth: Bearer hacker\" -d '$QUERY'${NC}"
 
-    UNAUTH_RESPONSE=$(curl -s -X POST http://localhost:8080/query \
+    UNAUTH_RESPONSE=$(curl -s -X POST http://localhost:4477/query \
         -H "Authorization: Bearer hacker" \
         -H "Content-Type: application/json" \
         -d "$QUERY" 2>/dev/null | jq -r '.error // "Access denied"')
@@ -150,9 +149,9 @@ main() {
     # Unauthorized query (Alice accessing John Doe's data)
     QUERY='{"question": "What was the total refund amount for 2023 for ABC Corp?"}'
     print_scenario "Alice tries to ask about data they don't have access to:"
-    echo -e "Command: ${BOLD}curl -X POST localhost:8080/query -H \"Auth: Bearer alice\" -d '$QUERY'${NC}"
+    echo -e "Command: ${BOLD}curl -X POST localhost:4477/query -H \"Auth: Bearer alice\" -d '$QUERY'${NC}"
 
-    UNAUTH_RESPONSE=$(curl -s -X POST http://localhost:8080/query \
+    UNAUTH_RESPONSE=$(curl -s -X POST http://localhost:4477/query \
         -H "Authorization: Bearer hacker" \
         -H "Content-Type: application/json" \
         -d "$QUERY" 2>/dev/null | jq -r '.error // "Access denied"')

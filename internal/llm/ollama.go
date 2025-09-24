@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"llm-rag-poc/internal/models"
 	"net/http"
+	"rerag-rbac-rag-llm/internal/models"
 	"strings"
 )
 

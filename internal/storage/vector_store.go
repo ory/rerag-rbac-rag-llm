@@ -2,8 +2,8 @@
 package storage
 
 import (
-	"llm-rag-poc/internal/models"
 	"math"
+	"rerag-rbac-rag-llm/internal/models"
 )
 
 // VectorStore defines the interface for vector-based document storage

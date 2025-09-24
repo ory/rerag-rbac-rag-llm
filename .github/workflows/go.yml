@@ -97,7 +97,7 @@ jobs:
         sudo mv keto /usr/local/bin/
 
     - name: Build application
-      run: go build -o llm-rag-poc .
+      run: go build -o rerag-rbac-rag-llm .
 
     - name: Run demo test
       run: |
@@ -120,13 +120,13 @@ jobs:
         ./scripts/setup-keto-permissions.sh
 
         # Start our application in background
-        ./llm-rag-poc &
+        ./rerag-rbac-rag-llm &
         APP_PID=$!
 
         # Wait for app to be ready
         echo "Waiting for application to start..."
         for i in {1..30}; do
-          if curl -s http://localhost:8080/health >/dev/null 2>&1; then
+          if curl -s http://localhost:4477/health >/dev/null 2>&1; then
             echo "Application is ready"
             break
           fi

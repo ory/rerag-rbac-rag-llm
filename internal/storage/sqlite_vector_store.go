@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"llm-rag-poc/internal/models"
 	"log"
+	"rerag-rbac-rag-llm/internal/models"
 	"sort"
 
 	"github.com/google/uuid"

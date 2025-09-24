@@ -4,9 +4,9 @@ package api
 import (
 	"bytes"
 	"encoding/json"
-	"llm-rag-poc/internal/models"
 	"net/http"
 	"net/http/httptest"
+	"rerag-rbac-rag-llm/internal/models"
 	"testing"
 	"time"
 

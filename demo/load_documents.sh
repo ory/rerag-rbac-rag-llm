@@ -1,6 +1,8 @@
 #!/bin/bash
 
-API_URL="http://localhost:8080"
+set -euo pipefail
+
+API_URL="http://localhost:4477"
 
 echo "Loading sample tax documents into the system..."
 echo "Note: Document upload does not require authentication"

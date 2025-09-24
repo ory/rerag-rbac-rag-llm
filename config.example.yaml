@@ -4,7 +4,7 @@
 # Server configuration
 server:
   host: "localhost"
-  port: 8080
+  port: 4477
   read_timeout: 30   # seconds
   write_timeout: 30  # seconds
 

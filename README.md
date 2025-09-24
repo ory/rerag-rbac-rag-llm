@@ -48,8 +48,8 @@ leak it.
 
 ## Quick demo
 
-Please have [Ollama v0.12+](https://ollama.com) installed and running
-as well as [Golang](https://go.dev) and ideally
+Please have [Ollama v0.12+](https://ollama.com) installed and running as well as
+[Golang](https://go.dev) and ideally
 [tmux](https://github.com/tmux/tmux/wiki/Installing).
 
 First clone the repository:
@@ -164,16 +164,16 @@ graph TD
 
 ```bash
 # Upload document
-curl -X POST localhost:8080/documents \
+curl -X POST localhost:4477/documents \
   -d '{"title": "Tax Return", "content": "...", "metadata": {"taxpayer": "John Doe"}}'
 
 # Query with permissions
-curl -X POST localhost:8080/query \
+curl -X POST localhost:4477/query \
   -H "Authorization: Bearer alice" \
   -d '{"question": "What was the refund amount?"}'
 
 # Check what Alice can see
-curl localhost:8080/permissions -H "Authorization: Bearer alice"
+curl localhost:4477/permissions -H "Authorization: Bearer alice"
 ```
 
 ## Configuration
@@ -189,7 +189,7 @@ Create a `config.yaml` file for persistent settings:
 # Server configuration
 server:
   host: 'localhost'
-  port: 8080
+  port: 4477
   tls:
     enabled: false # Set to true for HTTPS
     cert_file: 'certs/cert.pem'

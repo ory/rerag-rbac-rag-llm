@@ -1,4 +1,4 @@
-module llm-rag-poc
+module rerag-rbac-rag-llm
 
 go 1.24
 
