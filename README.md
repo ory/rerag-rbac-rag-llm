@@ -48,7 +48,9 @@ leak it.
 
 ## Quick demo
 
-Please have [Ollama](https://ollama.com) installed and running (`ollama serve`) as well as [Golang](https://go.dev) and ideally [tmux](https://github.com/tmux/tmux/wiki/Installing).
+Please have [Ollama](https://ollama.com) installed and running (`ollama serve`)
+as well as [Golang](https://go.dev) and ideally
+[tmux](https://github.com/tmux/tmux/wiki/Installing).
 
 ```bash
 git clone https://github.com/ory/rerag-rbac-rag-llm.git
