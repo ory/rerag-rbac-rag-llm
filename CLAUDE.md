@@ -192,7 +192,7 @@ Always test with different user contexts:
 | Keto permission denied    | Check Keto is running: `make start-keto`           |
 | Tests failing             | Run `make deps` to ensure dependencies are updated |
 | Embedding errors          | Pull the model: `ollama pull nomic-embed-text`     |
-| LLM errors                | Pull the model: `ollama pull llama3.2:1b`               |
+| LLM errors                | Pull the model: `ollama pull llama3.2:1b`          |
 
 ## When Working with Claude
 

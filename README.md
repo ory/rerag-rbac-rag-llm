@@ -21,7 +21,7 @@ it, extend it.
 # Alice queries the system
 curl -X POST /query -H "Auth: bad-actor" \
   -d '{"question": "What was the total refund?"}'
-# Response: "$8,500 for John Doe and $45,000 for ABC Corp"  ❌ DATA LEAK
+# Response: "$1,200 for John Doe and $3,500 for ABC Corp"  ❌ DATA LEAK
 ```
 
 ### With ReRAG (ReBAC-powered RAG)
@@ -30,12 +30,12 @@ curl -X POST /query -H "Auth: bad-actor" \
 # Alice queries (can only see John Doe's docs)
 curl -X POST /query -H "Auth: alice" \
   -d '{"question": "What was the total refund?"}'
-# Response: "$8,500 for John Doe"  ✅
+# Response: "$1,200 for John Doe"  ✅
 
 # Bob queries (can only see ABC Corp's docs)
 curl -X POST /query -H "Auth: bob" \
   -d '{"question": "What was the total refund?"}'
-# Response: "$45,000 for ABC Corporation"  ✅
+# Response: "$3,500 for ABC Corporation"  ✅
 
 # Bad actor queries (no docs at all)
 curl -X POST /query -H "Auth: bad-actor" \
@@ -279,14 +279,14 @@ This is a working reference, not production code. Ideas for extensions:
 
 ## Common issues
 
-| Problem                   | Solution                                                 |
-| ------------------------- | -------------------------------------------------------- |
-| Ollama connection refused | Run `ollama serve`                                       |
+| Problem                   | Solution                                                      |
+| ------------------------- | ------------------------------------------------------------- |
+| Ollama connection refused | Run `ollama serve`                                            |
 | Models missing            | Run `ollama pull llama3.2:1b && ollama pull nomic-embed-text` |
-| Keto not running          | Check with `curl localhost:4467/health/ready`            |
-| TLS certificate errors    | Check cert file paths and permissions                    |
-| Database encryption fails | Verify encryption key and SQLite encryption support      |
-| Config validation errors  | Check required fields when features are enabled          |
+| Keto not running          | Check with `curl localhost:4467/health/ready`                 |
+| TLS certificate errors    | Check cert file paths and permissions                         |
+| Database encryption fails | Verify encryption key and SQLite encryption support           |
+| Config validation errors  | Check required fields when features are enabled               |
 
 ## Contributing
 

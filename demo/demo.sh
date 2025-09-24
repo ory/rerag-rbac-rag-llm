@@ -61,10 +61,11 @@ main() {
     check_server
 
     print_header "📝 Sample Documents in System"
-    echo "1. Tax Return 2023 - John Doe (Refund: \$8,500)"
-    echo "2. Tax Return 2023 - ABC Corporation (Refund: \$45,000)"
-    echo "3. Tax Return 2022 - John Doe (Refund: \$3,200)"
-    echo "4. Financial Report - ABC Corporation (Revenue: \$5.2M)"
+    echo "1. Tax Return 2023 - John Doe (Refund: \$1,200)"
+    echo "2. Tax Return 2023 - ABC Corporation (Refund: \$3,500)"
+    echo "3. Tax Return 2022 - John Doe (Refund: \$950)"
+    echo "4. Tax Return 2023 - Jane Smith (Refund: \$3,500)"
+    echo "5. Tax Return 2023 - Michael Johnson (Refund: \$6,500)"
     sleep 2
 
     print_header "🔐 User Permissions"
