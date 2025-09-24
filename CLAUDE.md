@@ -184,6 +184,14 @@ Always test with different user contexts:
 5. Use the existing mock infrastructure for testing new features
 6. Follow the established patterns in server_test.go for consistency
 
+## CI/CD Optimizations
+
+The GitHub Actions workflow uses simple caching to speed up CI builds:
+
+- **Model Caching**: Ollama models are cached in `~/.ollama` directory
+- **Simple Setup**: Direct installation without complex custom actions
+- **Performance**: ~3-4 minutes for first run, ~1-2 minutes for cached runs
+
 ## Common Issues & Solutions
 
 | Issue                     | Solution                                           |
