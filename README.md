@@ -282,7 +282,7 @@ This is a working reference, not production code. Ideas for extensions:
 | Problem                   | Solution                                                 |
 | ------------------------- | -------------------------------------------------------- |
 | Ollama connection refused | Run `ollama serve`                                       |
-| Models missing            | Run `ollama pull llama3 && ollama pull nomic-embed-text` |
+| Models missing            | Run `ollama pull llama3.2:1b && ollama pull nomic-embed-text` |
 | Keto not running          | Check with `curl localhost:4467/health/ready`            |
 | TLS certificate errors    | Check cert file paths and permissions                    |
 | Database encryption fails | Verify encryption key and SQLite encryption support      |

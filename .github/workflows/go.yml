@@ -73,10 +73,6 @@ jobs:
         # Install and setup Ollama
         curl -fsSL https://ollama.com/install.sh | sh
 
-        # Start Ollama in background
-        ollama serve &
-        OLLAMA_PID=$!
-
         # Wait for Ollama to be ready
         echo "Waiting for Ollama to start..."
         for i in {1..30}; do
@@ -89,7 +85,7 @@ jobs:
 
         # Pull required models
         ollama pull nomic-embed-text
-        ollama pull llama3
+        ollama pull llama3.2:1b
 
         # Install Ory Keto
         curl -L https://github.com/ory/keto/releases/download/v0.12.0/keto_0.12.0-linux_64bit.tar.gz | tar xz

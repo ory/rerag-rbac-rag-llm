@@ -59,7 +59,7 @@ make quick-start # One-liner setup and demo (install + dev + demo)
 
 - **API Server** (`/internal/api/`): RESTful endpoints with auth middleware
 - **Embeddings** (`/internal/embeddings/`): Ollama with nomic-embed-text model
-- **LLM Client** (`/internal/llm/`): Ollama with llama3 model
+- **LLM Client** (`/internal/llm/`): Ollama with llama3.2:1b model
 - **Permissions** (`/internal/permissions/`): Ory Keto ReBAC integration
 - **Storage** (`/internal/storage/`): SQLite-based persistent vector store with
   cosine similarity
@@ -163,7 +163,7 @@ Always test with different user contexts:
 1. **Authentication**: Uses simple Bearer token for demo (not production-ready)
 2. **Storage**: SQLite-based vector store - data persists across restarts
 3. **Embedding Model**: Requires Ollama with nomic-embed-text model pulled
-4. **LLM Model**: Requires Ollama with llama3 model pulled
+4. **LLM Model**: Requires Ollama with llama3.2:1b model pulled
 5. **Concurrent Access**: Storage uses mutex for thread safety
 6. **Error Handling**: All errors return proper HTTP status codes via Herodot
 
@@ -192,7 +192,7 @@ Always test with different user contexts:
 | Keto permission denied    | Check Keto is running: `make start-keto`           |
 | Tests failing             | Run `make deps` to ensure dependencies are updated |
 | Embedding errors          | Pull the model: `ollama pull nomic-embed-text`     |
-| LLM errors                | Pull the model: `ollama pull llama3`               |
+| LLM errors                | Pull the model: `ollama pull llama3.2:1b`               |
 
 ## When Working with Claude
 
