@@ -141,7 +141,7 @@ func setDefaults(k *koanf.Koanf) {
 		"server.tls.min_version": "1.3",
 
 		// Database defaults
-		"database.path":               "vector_store.db",
+		"database.path":               "data/vector_store.db",
 		"database.encryption.enabled": false,
 
 		// Services defaults

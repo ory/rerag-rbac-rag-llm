@@ -90,20 +90,20 @@ func (s *Server) addDocument(w http.ResponseWriter, r *http.Request) {
 
 	var doc models.Document
 	if err := json.NewDecoder(r.Body).Decode(&doc); err != nil {
-		s.writer.WriteError(w, r, herodot.ErrBadRequest.WithReason("Invalid request body"))
+		s.writer.WriteError(w, r, herodot.ErrBadRequest.WithReason("Invalid request body").WithError(err.Error()))
 		return
 	}
 
 	embedding, err := s.embedder.GetEmbedding(doc.Content)
 	if err != nil {
-		s.writer.WriteError(w, r, herodot.ErrInternalServerError.WithReason("Failed to generate embedding"))
+		s.writer.WriteError(w, r, herodot.ErrInternalServerError.WithReason("Failed to generate embedding").WithError(err.Error()))
 		return
 	}
 
 	doc.Embedding = embedding
 
 	if err := s.vectorStore.UpsertDocument(&doc); err != nil {
-		s.writer.WriteError(w, r, herodot.ErrInternalServerError.WithReason("Failed to store document"))
+		s.writer.WriteError(w, r, herodot.ErrInternalServerError.WithReason("Failed to store document").WithError(err.Error()))
 		return
 	}
 
@@ -139,7 +139,7 @@ func (s *Server) queryDocuments(w http.ResponseWriter, r *http.Request) {
 
 	var req models.QueryRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		s.writer.WriteError(w, r, herodot.ErrBadRequest.WithReason("Invalid request body"))
+		s.writer.WriteError(w, r, herodot.ErrBadRequest.WithReason("Invalid request body").WithError(err.Error()))
 		return
 	}
 
@@ -147,7 +147,7 @@ func (s *Server) queryDocuments(w http.ResponseWriter, r *http.Request) {
 
 	questionEmbedding, err := s.embedder.GetEmbedding(req.Question)
 	if err != nil {
-		s.writer.WriteError(w, r, herodot.ErrInternalServerError.WithReason("Failed to generate question embedding"))
+		s.writer.WriteError(w, r, herodot.ErrInternalServerError.WithReason("Failed to generate question embedding").WithError(err.Error()))
 		return
 	}
 
@@ -158,13 +158,13 @@ func (s *Server) queryDocuments(w http.ResponseWriter, r *http.Request) {
 
 	relevantDocs, err := s.vectorStore.SearchSimilarWithFilter(questionEmbedding, req.TopK, filter)
 	if err != nil {
-		s.writer.WriteError(w, r, herodot.ErrInternalServerError.WithReason("Failed to search documents"))
+		s.writer.WriteError(w, r, herodot.ErrInternalServerError.WithReason("Failed to search documents").WithError(err.Error()))
 		return
 	}
 
 	answer, err := s.llmClient.Generate(req.Question, relevantDocs)
 	if err != nil {
-		s.writer.WriteError(w, r, herodot.ErrInternalServerError.WithReason("Failed to generate answer"))
+		s.writer.WriteError(w, r, herodot.ErrInternalServerError.WithReason("Failed to generate answer").WithError(err.Error()))
 		return
 	}
 

@@ -136,7 +136,7 @@ clean:
 
 # Full reset
 reset: clean
-	rm -rf .bin/ data/ vector_store.db
+	rm -rf .bin/ data/
 	@echo "Full reset complete"
 
 # Lint code

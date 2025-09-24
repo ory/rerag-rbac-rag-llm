@@ -48,7 +48,7 @@ leak it.
 
 ## Quick demo
 
-Please have [Ollama](https://ollama.com) installed and running (`ollama serve`)
+Please have [Ollama v0.12+](https://ollama.com) installed and running
 as well as [Golang](https://go.dev) and ideally
 [tmux](https://github.com/tmux/tmux/wiki/Installing).
 
@@ -59,10 +59,11 @@ git clone https://github.com/ory/rerag-rbac-rag-llm.git
 cd rerag-rbac-rag-llm
 ```
 
-and ensure you have ollama running:
+Ensure you have an up-to-date Ollama version. This demo was tested with 0.12.x:
 
 ```bash
-ollama serve
+ollama -v
+> ollama version is 0.12.1
 ```
 
 Then run the demo:
@@ -197,7 +198,7 @@ server:
 
 # Database configuration
 database:
-  path: 'vector_store.db'
+  path: 'data/vector_store.db'
   encryption:
     enabled: false # Set to true for SQLite encryption
     key: '' # Your encryption key

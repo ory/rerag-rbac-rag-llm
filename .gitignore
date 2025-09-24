@@ -1,7 +1,6 @@
 server
 .claude
 *.log
-data/
 .bin/
 ./keto
 .idea
