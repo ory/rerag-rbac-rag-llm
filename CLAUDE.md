@@ -186,11 +186,13 @@ Always test with different user contexts:
 
 ## CI/CD Optimizations
 
-The GitHub Actions workflow uses simple caching to speed up CI builds:
+The GitHub Actions workflow uses comprehensive caching to speed up CI builds:
 
-- **Model Caching**: Ollama models are cached in `~/.ollama` directory
-- **Simple Setup**: Direct installation without complex custom actions
-- **Performance**: ~3-4 minutes for first run, ~1-2 minutes for cached runs
+- **Ollama Installation Caching**: Binary and models cached in `~/.ollama` and `/usr/local/bin/ollama`
+- **Keto Installation Caching**: Binary cached in `/usr/local/bin/keto` (v0.14.0)
+- **No apt-get update**: Skip package index updates for faster dependency installation
+- **Conditional Installation**: Only download/install if not cached
+- **Performance**: ~3-4 minutes for first run, ~30-60 seconds for fully cached runs
 
 ## Common Issues & Solutions
 

@@ -64,15 +64,52 @@ jobs:
       with:
         go-version: '1.22'
 
+    - name: Cache Ollama installation
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.ollama
+          /usr/local/bin/ollama
+        key: ollama-install-${{ runner.os }}-v2
+        restore-keys: |
+          ollama-install-${{ runner.os }}-
+
+    - name: Cache Keto installation
+      uses: actions/cache@v4
+      with:
+        path: /usr/local/bin/keto
+        key: keto-install-${{ runner.os }}-v0.14.0
+
     - name: Install dependencies
       run: |
-        sudo apt-get update
+        # Install jq and curl (skip apt-get update for speed - these are usually available)
         sudo apt-get install -y jq curl
 
-        # Install Ollama
-        curl -fsSL https://ollama.com/install.sh | sh
+        # Install Ollama if not cached
+        if [ ! -f "/usr/local/bin/ollama" ]; then
+          echo "Installing Ollama..."
+          # Download and install Ollama without systemd (for CI environment)
+          curl -L https://ollama.com/download/ollama-linux-amd64 -o ollama
+          sudo chmod +x ollama
+          sudo mv ollama /usr/local/bin/
+          # Create required directory
+          mkdir -p ~/.ollama
+        else
+          echo "Using cached Ollama installation"
+        fi
 
-        # Wait for Ollama to be ready
+        # Install Keto if not cached
+        if [ ! -f "/usr/local/bin/keto" ]; then
+          echo "Installing Keto..."
+          curl -L https://github.com/ory/keto/releases/download/v0.14.0/keto_0.14.0_linux_64bit.tar.gz | tar xz
+          sudo mv keto /usr/local/bin/
+          sudo chmod +x /usr/local/bin/keto
+        else
+          echo "Using cached Keto installation"
+        fi
+
+        # Start Ollama and wait for it to be ready
+        ollama serve > /dev/null 2>&1 &
         echo "Waiting for Ollama to start..."
         for i in {1..30}; do
           if curl -s http://localhost:11434/api/version >/dev/null 2>&1; then
@@ -81,20 +118,8 @@ jobs:
           fi
           sleep 2
         done
-        
-        # Install Keto
-        curl -L https://github.com/ory/keto/releases/download/v0.12.0/keto_0.12.0-linux_64bit.tar.gz | tar xz
-        sudo mv keto /usr/local/bin/
 
-    - name: Cache Ollama models
-      uses: actions/cache@v4
-      with:
-        path: ~/.ollama
-        key: ollama-models-${{ runner.os }}-llama32-1b-nomic
-        restore-keys: |
-          ollama-models-${{ runner.os }}-
-
-    - name: Start Ollama and pull models
+    - name: Pull Ollama models
       run: |
         # Pull models (will use cache if available)
         ollama pull nomic-embed-text
