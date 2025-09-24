@@ -98,14 +98,14 @@ start-app: build
 # Setup permissions and load documents
 setup:
 	@echo "Setting up permissions..."
-	./scripts/setup_keto_permissions.sh
+	./demo/setup_keto_permissions.sh
 	@echo "Loading sample documents..."
-	./scripts/load_documents.sh
+	./demo/load_documents.sh
 
 # Run interactive demo
 demo:
 	@echo "Starting interactive demo..."
-	@./scripts/demo.sh
+	@./demo/demo.sh
 
 # One-liner quick start
 quick-start:

@@ -6,7 +6,7 @@ echo "Loading sample tax documents into the system..."
 echo "Note: Document upload does not require authentication"
 echo ""
 
-jq -c '.[]' documents/sample_documents.json | while read doc; do
+jq -c '.[]' demo/documents/sample_documents.json | while read doc; do
     echo "Adding document: $(echo $doc | jq -r '.title')"
     curl -sS -X POST "${API_URL}/documents" \
         -H "Content-Type: application/json" \
