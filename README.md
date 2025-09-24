@@ -48,22 +48,29 @@ leak it.
 
 ## Quick demo
 
+Please have [Ollama](https://ollama.com) installed and running (`ollama serve`) as well as [Golang](https://go.dev) and ideally [tmux](https://github.com/tmux/tmux/wiki/Installing).
+
 ```bash
+git clone https://github.com/ory/rerag-rbac-rag-llm.git
+
 # See it in action (requires Go, tmux, curl)
 make install
+
+# If you have tmux:
 make dev
-# Or if you do not have tmux:
-# make start-app
-# make start-keto
+
+# If you do not have tmux:
+make start-app
+make start-keto
 
 make demo
 ```
 
 This will:
 
-1. Install dependencies (Ollama, Ory Keto)
+1. Install dependencies
 2. Start services
-3. Load sample tax documents
+3. Load demo documents
 4. Run permission-aware queries showing different results per user
 
 See `config.example.yaml` for all configuration options.

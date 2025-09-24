@@ -12,7 +12,7 @@ fi
 echo "Keto server is running. Setting up relation tuples..."
 
 # Load relation tuples from JSON file
-./.bin/keto relation-tuple create documents/relation_tuples.json --config keto/config.yml --insecure-disable-transport-security
+./.bin/keto relation-tuple create demo/documents/relation_tuples.json --config keto/config.yml --insecure-disable-transport-security
 
 echo ""
 echo "Permission setup complete!"
