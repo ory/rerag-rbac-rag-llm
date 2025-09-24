@@ -2,9 +2,8 @@ name: Go CI
 
 on:
   push:
-    branches: [ main, ossify ]
+    branches: [ master ]
   pull_request:
-    branches: [ main ]
 
 jobs:
   test:
