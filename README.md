@@ -52,9 +52,22 @@ Please have [Ollama](https://ollama.com) installed and running (`ollama serve`)
 as well as [Golang](https://go.dev) and ideally
 [tmux](https://github.com/tmux/tmux/wiki/Installing).
 
+First clone the repository:
+
 ```bash
 git clone https://github.com/ory/rerag-rbac-rag-llm.git
+cd rerag-rbac-rag-llm
+```
 
+and ensure you have ollama running:
+
+```bash
+ollama serve
+```
+
+Then run the demo:
+
+```bash
 # See it in action (requires Go, tmux, curl)
 make install
 
