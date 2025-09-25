@@ -100,7 +100,7 @@ jobs:
             echo "Ollama is ready"
             break
           fi
-          sleep 2
+          sleep 1
         done
 
         # Now pull the models
@@ -119,13 +119,20 @@ jobs:
         make start-keto &
         KETO_PID=$!
 
-        # Wait for Keto to be ready
-        sleep 5
-
         # Build and start app in background
         make build
         ./bin/server &
         APP_PID=$!
+        
+        # Wait for keto to be ready
+        echo "Waiting for Keto to start..."
+        for i in {1..30}; do
+            if curl -s http://localhost:4466/health/alive >/dev/null
+            echo "Keto is ready"
+            break
+          fi
+          sleep 1
+        done
 
         # Wait for app to be ready
         echo "Waiting for services to start..."
