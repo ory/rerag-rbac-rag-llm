@@ -124,7 +124,7 @@ jobs:
 
         # Build and start app in background
         make build
-        ./server &
+        ./bin/server &
         APP_PID=$!
 
         # Wait for app to be ready
