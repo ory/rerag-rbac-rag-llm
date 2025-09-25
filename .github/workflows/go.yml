@@ -77,77 +77,33 @@ jobs:
     - name: Cache Keto installation
       uses: actions/cache@v4
       with:
-        path: /usr/local/bin/keto
+        path: ./.bin
         key: keto-install-${{ runner.os }}-v0.14.0
 
     - name: Install dependencies
       run: |
-        # Install jq and curl (skip apt-get update for speed - these are usually available)
+        # Install required system packages
         sudo apt-get install -y jq curl
 
-        # Install Ollama if not cached
-        if [ ! -f "/usr/local/bin/ollama" ]; then
-          echo "Installing Ollama..."
-          # Download and install Ollama without systemd (for CI environment)
-          curl -L https://ollama.com/download/ollama-linux-amd64 -o ollama
-          sudo chmod +x ollama
-          sudo mv ollama /usr/local/bin/
-          # Create required directory
-          mkdir -p ~/.ollama
-        else
-          echo "Using cached Ollama installation"
-        fi
-
-        # Install Keto if not cached
-        if [ ! -f "/usr/local/bin/keto" ]; then
-          echo "Installing Keto..."
-          curl -L https://github.com/ory/keto/releases/download/v0.14.0/keto_0.14.0_linux_64bit.tar.gz | tar xz
-          sudo mv keto /usr/local/bin/
-          sudo chmod +x /usr/local/bin/keto
-        else
-          echo "Using cached Keto installation"
-        fi
-
-        # Start Ollama and wait for it to be ready
-        ollama serve > /dev/null 2>&1 &
-        echo "Waiting for Ollama to start..."
-        for i in {1..30}; do
-          if curl -s http://localhost:11434/api/version >/dev/null 2>&1; then
-            echo "Ollama is ready"
-            break
-          fi
-          sleep 2
-        done
-
-    - name: Pull Ollama models
-      run: |
-        # Pull models (will use cache if available)
-        ollama pull nomic-embed-text
-        ollama pull llama3.2:1b
-
-    - name: Build application
-      run: go build -o rerag-rbac-rag-llm .
+        # Use make install to handle all dependencies
+        make install
 
     - name: Run demo test
       run: |
-        # Start services
-        keto serve --config keto/config.yml &
+        # Start Keto in background
+        make start-keto &
         KETO_PID=$!
 
+        # Wait for Keto to be ready
+        sleep 5
+
+        # Build and start app in background
+        make build
         ./rerag-rbac-rag-llm &
         APP_PID=$!
-        
-        keto namespace migrate up --config keto/config.yml
 
         # Wait for app to be ready
-        echo "Waiting for application to start..."
-        for i in {1..30}; do
-          if curl -s http://localhost:4467/health >/dev/null 2>&1; then
-            echo "Application is ready"
-            break
-          fi
-          sleep 1
-        done
+        echo "Waiting for services to start..."
         for i in {1..30}; do
           if curl -s http://localhost:4477/health >/dev/null 2>&1; then
             echo "Application is ready"
@@ -156,9 +112,8 @@ jobs:
           sleep 1
         done
 
-        # Setup and run demo
-        ./scripts/setup-keto-permissions.sh
-        ./scripts/load_documents.sh
+        # Setup permissions and load documents
+        make setup
 
         # Run demo
         make demo
