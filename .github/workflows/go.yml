@@ -113,8 +113,6 @@ jobs:
         # Download Go modules
         make deps
 
-    - name: Run demo test
-      run: |
         # Start Keto in background
         make start-keto &
         KETO_PID=$!
