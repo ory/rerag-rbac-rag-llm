@@ -85,8 +85,33 @@ jobs:
         # Install required system packages
         sudo apt-get install -y jq curl
 
-        # Use make install to handle all dependencies
-        make install
+        # Install Ollama (if not cached)
+        if ! command -v ollama >/dev/null 2>&1; then
+          curl -fsSL https://ollama.ai/install.sh | sh
+        fi
+
+        # Start Ollama server in background
+        ollama serve > /dev/null 2>&1 &
+
+        # Wait for Ollama to be ready
+        echo "Waiting for Ollama to start..."
+        for i in {1..30}; do
+          if curl -s http://localhost:11434/api/version >/dev/null 2>&1; then
+            echo "Ollama is ready"
+            break
+          fi
+          sleep 2
+        done
+
+        # Now pull the models
+        ollama pull llama3.2:1b
+        ollama pull nomic-embed-text
+
+        # Install Keto using make
+        make install-keto
+
+        # Download Go modules
+        make deps
 
     - name: Run demo test
       run: |
@@ -99,7 +124,7 @@ jobs:
 
         # Build and start app in background
         make build
-        ./rerag-rbac-rag-llm &
+        ./server &
         APP_PID=$!
 
         # Wait for app to be ready
