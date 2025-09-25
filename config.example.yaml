@@ -4,7 +4,7 @@
 # Server configuration
 server:
   host: "localhost"
-  port: 8080
+  port: 4477
   read_timeout: 30   # seconds
   write_timeout: 30  # seconds
 
@@ -30,7 +30,7 @@ services:
   ollama:
     base_url: "http://localhost:11434"
     embedding_model: "nomic-embed-text"
-    llm_model: "llama3"
+    llm_model: "llama3.2:1b"
     timeout: 60      # seconds
 
   # Ory Keto configuration

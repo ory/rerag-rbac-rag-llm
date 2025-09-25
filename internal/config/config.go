@@ -134,20 +134,20 @@ func setDefaults(k *koanf.Koanf) {
 	defaults := map[string]interface{}{
 		// Server defaults
 		"server.host":            "localhost",
-		"server.port":            8080,
+		"server.port":            4477,
 		"server.read_timeout":    30,
 		"server.write_timeout":   30,
 		"server.tls.enabled":     false,
 		"server.tls.min_version": "1.3",
 
 		// Database defaults
-		"database.path":               "data/vector_store.db",
+		"database.path":               "data/vector_store.db?mode=rwc",
 		"database.encryption.enabled": false,
 
 		// Services defaults
 		"services.ollama.base_url":        "http://localhost:11434",
 		"services.ollama.embedding_model": "nomic-embed-text",
-		"services.ollama.llm_model":       "llama3",
+		"services.ollama.llm_model":       "llama3.2:1b",
 		"services.ollama.timeout":         60,
 		"services.keto.read_url":          "http://localhost:4466",
 		"services.keto.write_url":         "http://localhost:4467",

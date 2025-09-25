@@ -1,6 +1,6 @@
 version: v0.14.0
 
-dsn: sqlite://./data/keto.db?_fk=true&cache=shared
+dsn: sqlite://./data/keto.db?_fk=true&cache=shared&mode=rwc
 
 serve:
   read:

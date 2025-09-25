@@ -3,12 +3,12 @@ package api
 import (
 	"cmp"
 	"encoding/json"
-	"llm-rag-poc/internal/auth"
-	"llm-rag-poc/internal/models"
-	"llm-rag-poc/internal/permissions"
-	"llm-rag-poc/internal/storage"
 	"log"
 	"net/http"
+	"rerag-rbac-rag-llm/internal/auth"
+	"rerag-rbac-rag-llm/internal/models"
+	"rerag-rbac-rag-llm/internal/permissions"
+	"rerag-rbac-rag-llm/internal/storage"
 	"time"
 
 	"github.com/ory/herodot"

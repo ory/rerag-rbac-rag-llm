@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"llm-rag-poc/internal/auth"
-	"llm-rag-poc/internal/models"
 	"net/http"
 	"net/http/httptest"
+	"rerag-rbac-rag-llm/internal/auth"
+	"rerag-rbac-rag-llm/internal/models"
 	"testing"
 
 	"github.com/google/uuid"

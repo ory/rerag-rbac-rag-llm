@@ -10,12 +10,12 @@ import (
 	"syscall"
 	"time"
 
-	"llm-rag-poc/internal/api"
-	"llm-rag-poc/internal/config"
-	"llm-rag-poc/internal/embeddings"
-	"llm-rag-poc/internal/llm"
-	"llm-rag-poc/internal/permissions"
-	"llm-rag-poc/internal/storage"
+	"rerag-rbac-rag-llm/internal/api"
+	"rerag-rbac-rag-llm/internal/config"
+	"rerag-rbac-rag-llm/internal/embeddings"
+	"rerag-rbac-rag-llm/internal/llm"
+	"rerag-rbac-rag-llm/internal/permissions"
+	"rerag-rbac-rag-llm/internal/storage"
 )
 
 func main() {

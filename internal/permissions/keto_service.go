@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"llm-rag-poc/internal/models"
 	"log"
 	"net/http"
 	"net/url"
+	"rerag-rbac-rag-llm/internal/models"
 
 	"github.com/google/uuid"
 )

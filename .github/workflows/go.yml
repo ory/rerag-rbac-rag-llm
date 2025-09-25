@@ -64,16 +64,33 @@ jobs:
       with:
         go-version: '1.22'
 
+    - name: Cache Ollama installation
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.ollama
+          /usr/local/bin/ollama
+        key: ollama-install-${{ runner.os }}-v2
+        restore-keys: |
+          ollama-install-${{ runner.os }}-
+
+    - name: Cache Keto installation
+      uses: actions/cache@v4
+      with:
+        path: ./.bin
+        key: keto-install-${{ runner.os }}-v0.14.0
+
     - name: Install dependencies
       run: |
-        # Install jq for JSON parsing
-        sudo apt-get update
+        # Install required system packages
         sudo apt-get install -y jq curl
 
-        # Install and setup Ollama
-        curl -fsSL https://ollama.com/install.sh | sh
+        # Install Ollama (if not cached)
+        if ! command -v ollama >/dev/null 2>&1; then
+          curl -fsSL https://ollama.ai/install.sh | sh
+        fi
 
-        # Start Ollama in background
+        # Start Ollama server in background
         ollama serve &
         OLLAMA_PID=$!
 
@@ -84,59 +101,42 @@ jobs:
             echo "Ollama is ready"
             break
           fi
-          sleep 2
+          sleep 1
         done
+        
+        make install
+        make build
 
-        # Pull required models
-        ollama pull nomic-embed-text
-        ollama pull llama3
-
-        # Install Ory Keto
-        curl -L https://github.com/ory/keto/releases/download/v0.12.0/keto_0.12.0-linux_64bit.tar.gz | tar xz
-        chmod +x keto
-        sudo mv keto /usr/local/bin/
-
-    - name: Build application
-      run: go build -o llm-rag-poc .
-
-    - name: Run demo test
-      run: |
-        # Start Keto in background
-        keto serve --config keto/config.yml &
+        make start-app &
+        APP_PID=$!
+        
+        make start-keto &
         KETO_PID=$!
 
-        # Wait for Keto to be ready
+        # Wait for keto to be ready
         echo "Waiting for Keto to start..."
         for i in {1..30}; do
-          if curl -s http://localhost:4467/health/ready >/dev/null 2>&1; then
+          if curl -s http://localhost:4466/health/alive >/dev/null 2>&1; then
             echo "Keto is ready"
             break
           fi
-          sleep 2
+          sleep 1
         done
 
-        # Setup Keto namespace and permissions
-        keto namespace migrate up --config keto/config.yml
-        ./scripts/setup-keto-permissions.sh
-
-        # Start our application in background
-        ./llm-rag-poc &
-        APP_PID=$!
-
         # Wait for app to be ready
-        echo "Waiting for application to start..."
+        echo "Waiting for service to start..."
         for i in {1..30}; do
-          if curl -s http://localhost:8080/health >/dev/null 2>&1; then
+          if curl -s http://localhost:4477/health >/dev/null 2>&1; then
             echo "Application is ready"
             break
           fi
-          sleep 2
+          sleep 1
         done
 
-        # Load sample documents
-        ./scripts/load_documents.sh
+        # Setup permissions and load documents
+        make setup
 
-        # Run the demo with strict error handling
+        # Run demo
         make demo
 
         # Cleanup

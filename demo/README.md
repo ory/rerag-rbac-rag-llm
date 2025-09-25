@@ -85,19 +85,19 @@ Here are some example queries to test the permission system:
 
 ```bash
 # Alice can query John Doe's information
-curl -X POST http://localhost:8080/query \
+curl -X POST http://localhost:4477/query \
   -H "Authorization: Bearer alice" \
   -H "Content-Type: application/json" \
   -d '{"question": "What was John Doe's refund amount?"}'
 
 # Bob cannot access John Doe's information
-curl -X POST http://localhost:8080/query \
+curl -X POST http://localhost:4477/query \
   -H "Authorization: Bearer bob" \
   -H "Content-Type: application/json" \
   -d '{"question": "What was John Doe's refund amount?"}'
 
 # Peter can access all information
-curl -X POST http://localhost:8080/query \
+curl -X POST http://localhost:4477/query \
   -H "Authorization: Bearer peter" \
   -H "Content-Type: application/json" \
   -d '{"question": "List all taxpayers and their refund amounts"}'

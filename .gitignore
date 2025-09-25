@@ -7,4 +7,4 @@ server
 *.db
 data/vector_store.db
 bin/
-llm-rag-poc
+rerag-rbac-rag-llm

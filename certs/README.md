@@ -82,10 +82,10 @@ Once TLS is enabled, you can test the HTTPS endpoint:
 
 ```bash
 # With self-signed certificates (ignore certificate warnings)
-curl -k https://localhost:8080/health
+curl -k https://localhost:4477/health
 
 # With valid certificates
-curl https://localhost:8080/health
+curl https://localhost:4477/health
 ```
 
 ## Security Best Practices

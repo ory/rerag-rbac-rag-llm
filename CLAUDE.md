@@ -32,7 +32,7 @@ make quick-start # One-liner setup and demo (install + dev + demo)
 ### Go Conventions
 
 - **Go version**: 1.24
-- **Module name**: `llm-rag-poc`
+- **Module name**: `rerag-rbac-rag-llm`
 - **Package structure**: All internal packages under `/internal/`
 - **Testing**: Comprehensive unit tests with mocks, E2E tests
 - **Error handling**: Use Ory Herodot for HTTP responses
@@ -59,7 +59,7 @@ make quick-start # One-liner setup and demo (install + dev + demo)
 
 - **API Server** (`/internal/api/`): RESTful endpoints with auth middleware
 - **Embeddings** (`/internal/embeddings/`): Ollama with nomic-embed-text model
-- **LLM Client** (`/internal/llm/`): Ollama with llama3 model
+- **LLM Client** (`/internal/llm/`): Ollama with llama3.2:1b model
 - **Permissions** (`/internal/permissions/`): Ory Keto ReBAC integration
 - **Storage** (`/internal/storage/`): SQLite-based persistent vector store with
   cosine similarity
@@ -163,7 +163,7 @@ Always test with different user contexts:
 1. **Authentication**: Uses simple Bearer token for demo (not production-ready)
 2. **Storage**: SQLite-based vector store - data persists across restarts
 3. **Embedding Model**: Requires Ollama with nomic-embed-text model pulled
-4. **LLM Model**: Requires Ollama with llama3 model pulled
+4. **LLM Model**: Requires Ollama with llama3.2:1b model pulled
 5. **Concurrent Access**: Storage uses mutex for thread safety
 6. **Error Handling**: All errors return proper HTTP status codes via Herodot
 
@@ -184,6 +184,20 @@ Always test with different user contexts:
 5. Use the existing mock infrastructure for testing new features
 6. Follow the established patterns in server_test.go for consistency
 
+## CI/CD Optimizations
+
+The GitHub Actions workflow uses comprehensive caching to speed up CI builds:
+
+- **Ollama Installation Caching**: Binary and models cached in `~/.ollama` and
+  `/usr/local/bin/ollama`
+- **Keto Installation Caching**: Binary cached in `/usr/local/bin/keto`
+  (v0.14.0)
+- **No apt-get update**: Skip package index updates for faster dependency
+  installation
+- **Conditional Installation**: Only download/install if not cached
+- **Performance**: ~3-4 minutes for first run, ~30-60 seconds for fully cached
+  runs
+
 ## Common Issues & Solutions
 
 | Issue                     | Solution                                           |
@@ -192,7 +206,7 @@ Always test with different user contexts:
 | Keto permission denied    | Check Keto is running: `make start-keto`           |
 | Tests failing             | Run `make deps` to ensure dependencies are updated |
 | Embedding errors          | Pull the model: `ollama pull nomic-embed-text`     |
-| LLM errors                | Pull the model: `ollama pull llama3`               |
+| LLM errors                | Pull the model: `ollama pull llama3.2:1b`          |
 
 ## When Working with Claude
 

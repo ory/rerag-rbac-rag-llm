@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euo pipefail
+
 echo "Setting up Keto permissions for tax document access..."
 
 # Check if Keto server is running

@@ -2,7 +2,7 @@
 package permissions
 
 import (
-	"llm-rag-poc/internal/models"
+	"rerag-rbac-rag-llm/internal/models"
 )
 
 // PermissionChecker defines the interface for checking document access permissions
