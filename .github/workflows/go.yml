@@ -85,6 +85,25 @@ jobs:
         # Install required system packages
         sudo apt-get install -y jq curl
 
+        # Install Ollama (if not cached)
+        if ! command -v ollama >/dev/null 2>&1; then
+          curl -fsSL https://ollama.ai/install.sh | sh
+        fi
+
+        # Start Ollama server in background
+        ollama serve &
+        OLLAMA_PID=$!
+
+        # Wait for Ollama to be ready
+        echo "Waiting for Ollama to start..."
+        for i in {1..30}; do
+          if curl -s http://localhost:11434/api/version >/dev/null 2>&1; then
+            echo "Ollama is ready"
+            break
+          fi
+          sleep 1
+        done
+        
         make install
         make build
 
@@ -121,4 +140,4 @@ jobs:
         make demo
 
         # Cleanup
-        kill $APP_PID $KETO_PID 2>/dev/null || true
+        kill $APP_PID $KETO_PID $OLLAMA_PID 2>/dev/null || true
