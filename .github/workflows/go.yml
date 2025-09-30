@@ -56,6 +56,13 @@ jobs:
   demo-test:
     runs-on: ubuntu-latest
     needs: [test, format, lint]
+
+    services:
+      ollama:
+        image: ollama/ollama:latest
+        ports:
+          - 11434:11434
+
     steps:
     - uses: actions/checkout@v4
 
@@ -63,16 +70,6 @@ jobs:
       uses: actions/setup-go@v5
       with:
         go-version: '1.22'
-
-    - name: Cache Ollama installation
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.ollama
-          /usr/local/bin/ollama
-        key: ollama-install-${{ runner.os }}-v2
-        restore-keys: |
-          ollama-install-${{ runner.os }}-
 
     - name: Cache Keto installation
       uses: actions/cache@v4
@@ -85,15 +82,12 @@ jobs:
         # Install required system packages
         sudo apt-get install -y jq curl
 
-        # Install Ollama (if not cached)
-        if ! command -v ollama >/dev/null 2>&1; then
-          curl -fsSL https://ollama.ai/install.sh | sh
-        fi
+        make install-keto
+        make deps
+        make build
 
-        # Start Ollama server in background
-        ollama serve &
-        OLLAMA_PID=$!
-
+    - name: Setup Ollama models
+      run: |
         # Wait for Ollama to be ready
         echo "Waiting for Ollama to start..."
         for i in {1..30}; do
@@ -103,10 +97,10 @@ jobs:
           fi
           sleep 1
         done
-  
-        make install
-      
-        
+
+        # Pull required models
+        make install-ollama-models
+
         # Check if Ollama is working
         curl -sS -X POST http://127.0.0.1:11434/api/generate \
           -H "Content-Type: application/json" \
@@ -115,12 +109,12 @@ jobs:
           "prompt": "What is 2+2?",
           "stream": false
         }' | jq .
-        
-        make build
 
+    - name: Run demo
+      run: |
         make start-app &
         APP_PID=$!
-        
+
         make start-keto &
         KETO_PID=$!
 
@@ -146,7 +140,7 @@ jobs:
 
         # Setup permissions and load documents
         make setup
-        
+
         curl -s -X POST http://localhost:4477/query \
           -H "Authorization: Bearer alice" \
           -H "Content-Type: application/json" \
@@ -156,4 +150,4 @@ jobs:
         make demo
 
         # Cleanup
-        kill $APP_PID $KETO_PID $OLLAMA_PID 2>/dev/null || true
+        kill $APP_PID $KETO_PID 2>/dev/null || true
