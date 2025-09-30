@@ -112,7 +112,7 @@ All open source, runs locally:
 
 - **[Ory Keto](https://www.ory.sh/keto/)**: Google Zanzibar-based ReBAC for
   permissions
-- **[Ollama](https://ollama.ai/)**: Local LLM runner (Llama3 for inference,
+- **[Ollama](https://ollama.ai/)**: Local LLM runner (`gemma3:1b` for inference,
   nomic for embeddings)
 - **[SQLite](https://www.sqlite.org/)**: Persistent vector storage with optional
   encryption
@@ -145,7 +145,7 @@ graph TD
       E --> F["🤖 LLM Processing"]
       F --> G["✅ Secure Response"]
       I["SQLite Vector Store (Embeddings)"]
-      J["Ollama / Llama3 (LLM)"]
+      J["Ollama / LLM"]
     end
 
     %% Wiring external systems
@@ -186,31 +186,58 @@ variables.
 Create a `config.yaml` file for persistent settings:
 
 ```yaml
+# Example configuration file for LLM RAG ReBAC OSS
+# Copy this to config.yaml and modify as needed
+
 # Server configuration
 server:
   host: 'localhost'
   port: 4477
+  read_timeout: 30 # seconds
+  write_timeout: 30 # seconds
+
+  # TLS/HTTPS configuration
   tls:
-    enabled: false # Set to true for HTTPS
-    cert_file: 'certs/cert.pem'
-    key_file: 'certs/key.pem'
-    min_version: '1.3' # TLS 1.2 or 1.3
+    enabled: false # Set to true to enable HTTPS
+    cert_file: '' # Path to TLS certificate file (required if enabled)
+    key_file: '' # Path to TLS private key file (required if enabled)
+    min_version: '1.3' # Minimum TLS version ("1.2" or "1.3")
 
 # Database configuration
 database:
   path: 'data/vector_store.db'
+
+  # Database encryption using SQLCipher
   encryption:
-    enabled: false # Set to true for SQLite encryption
-    key: '' # Your encryption key
+    enabled: false # Set to true to enable database encryption
+    key: '' # Encryption key (required if enabled)
+
+# External services
+services:
+  # Ollama configuration
+  ollama:
+    base_url: 'http://localhost:11434'
+    embedding_model: 'nomic-embed-text'
+    llm_model: 'llama3.2:1b' # A model that fits on your machine / use case
+    timeout: 60 # seconds
+
+  # Ory Keto configuration
+  keto:
+    read_url: 'http://localhost:4466'
+    write_url: 'http://localhost:4467'
+    timeout: 10 # seconds
 
 # Security settings
 security:
+  auth_mode: 'mock' # "mock" or "jwt"
+  jwt_secret: '' # JWT secret (required if auth_mode is "jwt")
   error_mode: 'detailed' # "detailed" or "secure"
 
 # Application settings
 app:
-  environment: 'development' # "development", "staging", "production"
-  log_level: 'info' # "debug", "info", "warn", "error"
+  environment: 'development' # "development", "staging", or "production"
+  log_level: 'info' # "debug", "info", "warn", or "error"
+  log_format: 'text' # "text" or "json"
 ```
 
 ### Environment Variables
