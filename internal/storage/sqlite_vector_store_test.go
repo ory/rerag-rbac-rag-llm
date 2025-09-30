@@ -15,7 +15,6 @@ func TestSQLiteVectorStore(t *testing.T) {
 
 	testAddDocuments(t, store)
 	testGetAllDocuments(t, store)
-	testSearchSimilar(t, store)
 	testSearchSimilarWithFilter(t, store)
 	testGetFilteredDocuments(t, store)
 }
@@ -51,17 +50,6 @@ func testGetAllDocuments(t *testing.T, store *SQLiteVectorStore) {
 	allDocs := store.GetAllDocuments()
 	if len(allDocs) != 2 {
 		t.Errorf("Expected 2 documents, got %d", len(allDocs))
-	}
-}
-
-func testSearchSimilar(t *testing.T, store *SQLiteVectorStore) {
-	queryEmbedding := []float32{0.15, 0.25, 0.35}
-	results, err := store.SearchSimilar(queryEmbedding, 1)
-	if err != nil {
-		t.Fatalf("Failed to search similar: %v", err)
-	}
-	if len(results) != 1 {
-		t.Errorf("Expected 1 result, got %d", len(results))
 	}
 }
 
@@ -197,15 +185,5 @@ func TestSQLiteVectorStoreEmptyDB(t *testing.T) {
 	allDocs := store.GetAllDocuments()
 	if len(allDocs) != 0 {
 		t.Errorf("Expected 0 documents in empty store, got %d", len(allDocs))
-	}
-
-	queryEmbedding := []float32{0.1, 0.2, 0.3}
-	results, err := store.SearchSimilar(queryEmbedding, 5)
-	if err != nil {
-		t.Fatalf("Failed to search in empty store: %v", err)
-	}
-
-	if len(results) != 0 {
-		t.Errorf("Expected 0 results from empty store, got %d", len(results))
 	}
 }

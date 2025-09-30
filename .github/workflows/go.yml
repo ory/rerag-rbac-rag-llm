@@ -17,7 +17,7 @@ jobs:
         go-version: '1.22'
 
     - name: Run tests
-      run: go test -v ./...
+      run: CGO_ENABLED=1 go test -v ./...
 
   format:
     runs-on: ubuntu-latest
@@ -80,7 +80,7 @@ jobs:
     - name: Install dependencies and build binaries
       run: |
         # Install required system packages
-        sudo apt-get install -y jq curl
+        sudo apt-get install -y jq curl build-essential
 
         make install-keto
         make deps

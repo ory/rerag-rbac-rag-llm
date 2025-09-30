@@ -67,10 +67,10 @@ deps:
 	go mod download
 	go mod tidy
 
-# Build the application
+# Build the application (CGO required for sqlite-vec)
 build: deps
 	@mkdir -p .bin
-	go build -o .bin/server .
+	CGO_ENABLED=1 go build -o .bin/server .
 
 # Run the application
 run: build
