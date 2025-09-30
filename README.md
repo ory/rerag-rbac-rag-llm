@@ -82,8 +82,9 @@ make start-keto
 make demo
 ```
 
-**Note**: This project requires CGO (C compiler) for sqlite-vec integration. Ensure
-you have a C compiler installed:
+**Note**: This project requires CGO (C compiler) for sqlite-vec integration.
+Ensure you have a C compiler installed:
+
 - **macOS**: Install Xcode Command Line Tools (`xcode-select --install`)
 - **Linux**: Install `build-essential` (`apt-get install build-essential`)
 - **Windows**: Install MinGW-w64 or use WSL
@@ -162,7 +163,8 @@ graph TD
     J --> F
 ```
 
-1. **Upload**: Documents tagged with owner metadata, embeddings stored in sqlite-vec
+1. **Upload**: Documents tagged with owner metadata, embeddings stored in
+   sqlite-vec
 2. **Permissions**: Relationships defined in Keto (who can see what)
 3. **Query**: User asks a question, embedding generated
 4. **Vector Search**: sqlite-vec performs efficient KNN search in SQLite
@@ -174,13 +176,18 @@ graph TD
 The system uses [sqlite-vec](https://github.com/asg017/sqlite-vec) for efficient
 vector similarity search directly in SQLite:
 
-- **Native SQL operations**: Vector search happens in the database, not in application memory
+- **Native SQL operations**: Vector search happens in the database, not in
+  application memory
 - **KNN algorithm**: K-nearest neighbors search using cosine distance
-- **Efficient storage**: Vectors stored in a `vec0` virtual table with automatic indexing
-- **No memory overhead**: Documents don't need to be loaded into memory for similarity computation
+- **Efficient storage**: Vectors stored in a `vec0` virtual table with automatic
+  indexing
+- **No memory overhead**: Documents don't need to be loaded into memory for
+  similarity computation
 - **Scales with SQLite**: Leverages SQLite's proven performance and reliability
-- **Adaptive recursive search**: Dynamically increases candidate pool when filtering reduces results
-- **Permission-aware filtering**: Efficiently handles sparse permission scenarios without over-fetching
+- **Adaptive recursive search**: Dynamically increases candidate pool when
+  filtering reduces results
+- **Permission-aware filtering**: Efficiently handles sparse permission
+  scenarios without over-fetching
 
 #### Recursive Search Algorithm
 
@@ -192,9 +199,11 @@ When searching with permission filters, the system uses an adaptive approach:
    - Recursively doubles the candidate pool (growth factor: 2.0)
    - Continues until `topK` matches found or all documents searched
    - Safety limit of 10 attempts prevents infinite recursion
-4. **Optimization**: Stops early when enough matches found or no more documents exist
+4. **Optimization**: Stops early when enough matches found or no more documents
+   exist
 
-This approach balances efficiency with completeness, adapting to different permission distributions without requiring manual tuning.
+This approach balances efficiency with completeness, adapting to different
+permission distributions without requiring manual tuning.
 
 ## API examples
 
@@ -335,9 +344,11 @@ key management systems in production.
 The system uses a dual-table approach for efficient storage and retrieval:
 
 1. **documents table**: Stores document metadata (id, title, content)
-2. **vec_documents virtual table**: Stores vector embeddings using sqlite-vec's `vec0` module
+2. **vec_documents virtual table**: Stores vector embeddings using sqlite-vec's
+   `vec0` module
 
 This separation allows:
+
 - Fast metadata queries without loading embeddings
 - Efficient vector similarity search using native SQLite operations
 - Dynamic embedding dimension support (auto-detected from first document)
@@ -345,9 +356,11 @@ This separation allows:
 
 #### Permission-Aware Vector Search
 
-The vector search implementation combines sqlite-vec's KNN algorithm with an adaptive recursive approach:
+The vector search implementation combines sqlite-vec's KNN algorithm with an
+adaptive recursive approach:
 
 **SQL Query Pattern:**
+
 ```sql
 -- Vector KNN search returning top K candidates
 SELECT d.id, d.title, d.content, v.distance
@@ -358,6 +371,7 @@ ORDER BY v.distance;
 ```
 
 **Adaptive Filtering Algorithm:**
+
 ```
 1. Start: Fetch topK × 2 candidates via KNN
 2. Filter: Apply permission check to candidates
@@ -369,6 +383,7 @@ ORDER BY v.distance;
 ```
 
 **Example Scenario:**
+
 ```
 User requests 5 documents
 - Attempt 1: Fetch 10 candidates → 2 authorized → insufficient
@@ -377,9 +392,11 @@ User requests 5 documents
 ```
 
 This approach is particularly efficient when:
+
 - Users have access to a significant subset of documents (minimal recursion)
 - Permission distribution is sparse but consistent (predictable growth)
-- Document corpus is large but user access is limited (avoids loading all vectors)
+- Document corpus is large but user access is limited (avoids loading all
+  vectors)
 
 ### Building and Development
 
@@ -401,7 +418,8 @@ This is a working reference, not production code. Ideas for extensions:
 
 - **Real Auth**: Replace mock tokens with OAuth2/OIDC ([Ory Hydra] works great
   with Ory Keto)
-- **Scale Storage**: Swap SQLite for Pinecone/Weaviate/pgvector (keep sqlite-vec approach)
+- **Scale Storage**: Swap SQLite for Pinecone/Weaviate/pgvector (keep sqlite-vec
+  approach)
 - **Audit Trail**: Add comprehensive logging for compliance
 - **Reverse Expand**: Instead of using vector search to filter, use Keto to
   pre-filter document IDs
