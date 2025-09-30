@@ -146,6 +146,11 @@ jobs:
 
         # Setup permissions and load documents
         make setup
+        
+        curl -s -X POST http://localhost:4477/query \
+          -H "Authorization: Bearer alice" \
+          -H "Content-Type: application/json" \
+          -d '{"question": "What was the total refund amount for 2023 for John Doe?"}'
 
         # Run demo
         make demo
