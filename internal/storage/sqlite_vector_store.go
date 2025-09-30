@@ -65,9 +65,6 @@ func (s *SQLiteVectorStore) initDB() error {
 		return fmt.Errorf("failed to create documents table: %w", err)
 	}
 
-	// vec_documents will be created dynamically on first insert
-	// when we know the embedding dimension
-
 	return nil
 }
 

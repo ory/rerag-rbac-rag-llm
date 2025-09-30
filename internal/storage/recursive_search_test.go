@@ -8,6 +8,8 @@ import (
 	"github.com/google/uuid"
 )
 
+const odd = "odd"
+
 // TestRecursiveSearchWithFilter tests that the recursive search correctly
 // increases the candidate pool when not enough matches are found
 func TestRecursiveSearchWithFilter(t *testing.T) {
@@ -18,13 +20,15 @@ func TestRecursiveSearchWithFilter(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create SQLite vector store: %v", err)
 	}
-	defer store.Close()
+	defer func() {
+		_ = store.Close()
+	}()
 
 	// Add 10 documents with alternating categories
 	for i := 0; i < 10; i++ {
 		category := "even"
 		if i%2 == 1 {
-			category = "odd"
+			category = odd
 		}
 
 		doc := &models.Document{
@@ -47,7 +51,7 @@ func TestRecursiveSearchWithFilter(t *testing.T) {
 	// Request 4 results, which should work but may require recursion
 	queryEmbedding := []float32{0.3, 0.15, 0.1}
 	filter := func(doc *models.Document) bool {
-		return doc.Title == "odd"
+		return doc.Title == odd
 	}
 
 	results, err := store.SearchSimilarWithFilter(queryEmbedding, 4, filter)
@@ -62,7 +66,7 @@ func TestRecursiveSearchWithFilter(t *testing.T) {
 
 	// Verify all results are "odd"
 	for i, doc := range results {
-		if doc.Title != "odd" {
+		if doc.Title != odd {
 			t.Errorf("Result %d has wrong title: %s", i, doc.Title)
 		}
 	}
@@ -77,7 +81,9 @@ func TestRecursiveSearchMaxAttempts(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create SQLite vector store: %v", err)
 	}
-	defer store.Close()
+	defer func() {
+		_ = store.Close()
+	}()
 
 	// Add only 3 documents, all with title "A"
 	for i := 0; i < 3; i++ {
