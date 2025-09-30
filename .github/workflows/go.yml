@@ -116,7 +116,7 @@ jobs:
         # Wait for keto to be ready
         echo "Waiting for Keto to start..."
         for i in {1..30}; do
-          if curl -s http://localhost:4466/health/alive >/dev/null 2>&1; then
+          if curl -s http://localhost:4467/health/alive >/dev/null 2>&1; then
             echo "Keto is ready"
             break
           fi
@@ -132,9 +132,6 @@ jobs:
           fi
           sleep 1
         done
-
-        # Setup permissions and load documents
-        make setup
 
         # Run demo
         make demo
