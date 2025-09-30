@@ -59,10 +59,40 @@ make quick-start # One-liner setup and demo (install + dev + demo)
 
 - **API Server** (`/internal/api/`): RESTful endpoints with auth middleware
 - **Embeddings** (`/internal/embeddings/`): Ollama with nomic-embed-text model
-- **LLM Client** (`/internal/llm/`): Ollama with llama3.2:1b model
+- **LLM Client** (`/internal/llm/`): Ollama with llama3.2:1b model (temperature=0
+  for deterministic output)
 - **Permissions** (`/internal/permissions/`): Ory Keto ReBAC integration
 - **Storage** (`/internal/storage/`): SQLite-based persistent vector store with
-  cosine similarity
+  sqlite-vec KNN search and adaptive recursive filtering
+
+### Vector Search Architecture
+
+The storage layer uses a sophisticated approach for permission-aware similarity
+search:
+
+**Key Implementation Details:**
+
+- **sqlite-vec Integration**: Uses `vec0` virtual table for native vector
+  operations in SQLite
+- **Dual-Table Design**: Separates document metadata (`documents`) from vectors
+  (`vec_documents`)
+- **Adaptive Search**: `SearchSimilarWithFilter()` recursively expands candidate
+  pool
+  - Starts with `topK × 2` candidates
+  - Doubles pool size on each attempt (growth factor: 2.0)
+  - Max 10 attempts to prevent infinite recursion
+  - Returns best-effort results if max attempts reached
+- **Performance**: Optimized for sparse permission scenarios without loading all
+  vectors
+
+**Implementation Location:** `internal/storage/sqlite_vector_store.go:217-277`
+
+**Key Functions:**
+
+- `SearchSimilarWithFilter()`: Main entry point for permission-aware search
+- `searchWithFilterRecursive()`: Recursive logic for adaptive candidate fetching
+- `applyFilter()`: Applies permission filter to candidate documents
+- `searchWithSqliteVec()`: Executes KNN query via sqlite-vec
 
 ### Permission Model
 
@@ -121,8 +151,9 @@ and update the README if needed."
   service.go          # Permission service interface
 
 /internal/storage/     # Vector storage
-  sqlite_vector_store.go  # SQLite-based implementation
+  sqlite_vector_store.go  # SQLite-based implementation with sqlite-vec
   vector_store.go         # Storage interface
+  recursive_search_test.go # Tests for adaptive recursive search
 
 /keto/                # Keto configuration
   config.yml         # Server config
@@ -161,16 +192,21 @@ Always test with different user contexts:
 ## Gotchas & Important Notes
 
 1. **Authentication**: Uses simple Bearer token for demo (not production-ready)
-2. **Storage**: SQLite-based vector store - data persists across restarts
+2. **Storage**: SQLite-based vector store with sqlite-vec - data persists across
+   restarts
 3. **Embedding Model**: Requires Ollama with nomic-embed-text model pulled
-4. **LLM Model**: Requires Ollama with gemma3:1b model pulled
-5. **Concurrent Access**: Storage uses mutex for thread safety
-6. **Error Handling**: All errors return proper HTTP status codes via Herodot
+4. **LLM Model**: Requires Ollama with gemma3:1b model pulled (uses
+   temperature=0 for deterministic output)
+5. **CGO Required**: sqlite-vec requires CGO_ENABLED=1 and a C compiler
+6. **Vector Search**: Uses adaptive recursive search that dynamically adjusts
+   candidate pool size based on permission filtering
+7. **Error Handling**: All errors return proper HTTP status codes via Herodot
 
 ## Useful Resources
 
 - [Ory Keto Documentation](https://www.ory.sh/docs/keto)
 - [Ollama API Reference](https://github.com/ollama/ollama/blob/main/docs/api.md)
+- [sqlite-vec Documentation](https://github.com/asg017/sqlite-vec)
 - [Google Zanzibar Paper](https://research.google/pubs/pub48190/) (ReBAC
   foundation)
 - [Project README](./README.md) for setup instructions

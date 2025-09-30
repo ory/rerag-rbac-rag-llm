@@ -10,7 +10,6 @@ import (
 type VectorStore interface {
 	AddDocument(doc *models.Document) error
 	UpsertDocument(doc *models.Document) error
-	SearchSimilar(embedding []float32, topK int) ([]models.Document, error)
 	SearchSimilarWithFilter(embedding []float32, topK int, filter func(*models.Document) bool) ([]models.Document, error)
 	GetAllDocuments() []models.Document
 	GetFilteredDocuments(filter func(*models.Document) bool) []models.Document

@@ -33,6 +33,10 @@ func (o *OllamaClient) Generate(question string, context []models.Document) (str
 		"model":  o.model,
 		"prompt": prompt,
 		"stream": false,
+		"options": map[string]interface{}{
+			"temperature": 0,
+		},
+		"system": "You are a helpful assistant that answers questions based on the provided documents. If the answer can not be found in the documents, assume the user is not authorized to view them.",
 	}
 
 	jsonData, err := json.Marshal(reqBody)
@@ -65,7 +69,7 @@ func (o *OllamaClient) buildPrompt(question string, documents []models.Document)
 	var contextStr strings.Builder
 
 	contextStr.WriteString("You are a helpful assistant that answers questions based on the provided documents. If the answer can not be found in the documents, assume the user is not authorized to view them.\n\n")
-	contextStr.WriteString("Context Documents:\n")
+	contextStr.WriteString("Documents:\n")
 
 	for i, doc := range documents {
 		contextStr.WriteString(fmt.Sprintf("\nDocument %d: %s\n", i+1, doc.Title))
