@@ -104,6 +104,15 @@ jobs:
           sleep 1
         done
         
+        # Check if Ollama is working
+        curl -sS -X POST http://127.0.0.1:11434/api/generate \
+          -H "Content-Type: application/json" \
+          -d '{
+          "model": "llama3.2:1b",
+          "prompt": "What is 2+2?",
+          "stream": false
+        }' | jq .
+  
         make install
         make build
 
