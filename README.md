@@ -8,7 +8,7 @@ repository shows how to fix it with ReBAC (relationship based access control)
 using [Ollama](https://ollama.com) and [Ory Keto](https://github.com/ory/keto),
 an open source Google Zanzibar implementation.
 
-**TL;DR**: Most RAG systems leak private data across users. This repo
+**TL;DR**: Most RAG systems leak private data across users. This repoa
 demonstrates permission-aware RAG that guarantees the LLM never sees
 unauthorized documents. Think Google Zanzibar meets embeddings — fork it, break
 it, extend it.
