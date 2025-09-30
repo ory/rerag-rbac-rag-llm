@@ -59,7 +59,7 @@ make quick-start # One-liner setup and demo (install + dev + demo)
 
 - **API Server** (`/internal/api/`): RESTful endpoints with auth middleware
 - **Embeddings** (`/internal/embeddings/`): Ollama with nomic-embed-text model
-- **LLM Client** (`/internal/llm/`): Ollama with gemma3:1b model
+- **LLM Client** (`/internal/llm/`): Ollama with llama3.2:1b model
 - **Permissions** (`/internal/permissions/`): Ory Keto ReBAC integration
 - **Storage** (`/internal/storage/`): SQLite-based persistent vector store with
   cosine similarity

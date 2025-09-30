@@ -30,7 +30,7 @@ services:
   ollama:
     base_url: "http://localhost:11434"
     embedding_model: "nomic-embed-text"
-    llm_model: "gemma3:1b"
+    llm_model: "llama3.2:1b"
     timeout: 60      # seconds
 
   # Ory Keto configuration

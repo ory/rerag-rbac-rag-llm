@@ -45,7 +45,7 @@ install-ollama:
 		echo "Ollama already installed"; \
 	fi
 	@echo "Pulling required models..."
-	ollama pull gemma3:1b
+	ollama pull llama3.2:1b
 	ollama pull nomic-embed-text
 
 .bin/keto:
@@ -92,11 +92,13 @@ dev: reset install build
 
 # Start Keto server
 start-keto:
+	@mkdir -p data
 	.bin/keto migrate up --yes --config keto/config.yml
 	.bin/keto serve all --config keto/config.yml
 
 # Start the application server
 start-app: build
+	@mkdir -p data
 	.bin/server
 
 setup:

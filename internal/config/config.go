@@ -147,7 +147,7 @@ func setDefaults(k *koanf.Koanf) {
 		// Services defaults
 		"services.ollama.base_url":        "http://localhost:11434",
 		"services.ollama.embedding_model": "nomic-embed-text",
-		"services.ollama.llm_model":       "gemma3:1b",
+		"services.ollama.llm_model":       "llama3.2:1b",
 		"services.ollama.timeout":         60,
 		"services.keto.read_url":          "http://localhost:4466",
 		"services.keto.write_url":         "http://localhost:4467",

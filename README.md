@@ -218,7 +218,7 @@ services:
   ollama:
     base_url: 'http://localhost:11434'
     embedding_model: 'nomic-embed-text'
-    llm_model: 'gemma3:1b' # A model that fits on your machine / use case
+    llm_model: 'llama3.2:1b' # A model that fits on your machine / use case
     timeout: 60 # seconds
 
   # Ory Keto configuration
@@ -323,14 +323,14 @@ The GitHub Actions workflow includes optimizations for faster CI runs:
 
 ## Common issues
 
-| Problem                   | Solution                                                    |
-| ------------------------- | ----------------------------------------------------------- |
-| Ollama connection refused | Run `ollama serve`                                          |
-| Models missing            | Run `ollama pull gemma3:1b && ollama pull nomic-embed-text` |
-| Keto not running          | Check with `curl localhost:4467/health/ready`               |
-| TLS certificate errors    | Check cert file paths and permissions                       |
-| Database encryption fails | Verify encryption key and SQLite encryption support         |
-| Config validation errors  | Check required fields when features are enabled             |
+| Problem                   | Solution                                                      |
+| ------------------------- | ------------------------------------------------------------- |
+| Ollama connection refused | Run `ollama serve`                                            |
+| Models missing            | Run `ollama pull llama3.2:1b && ollama pull nomic-embed-text` |
+| Keto not running          | Check with `curl localhost:4467/health/ready`                 |
+| TLS certificate errors    | Check cert file paths and permissions                         |
+| Database encryption fails | Verify encryption key and SQLite encryption support           |
+| Config validation errors  | Check required fields when features are enabled               |
 
 ## Contributing
 
