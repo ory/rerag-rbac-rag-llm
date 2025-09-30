@@ -45,7 +45,7 @@ install-ollama:
 		echo "Ollama already installed"; \
 	fi
 	@echo "Pulling required models..."
-	ollama pull llama3.2:1b
+	ollama pull gemma3:1b
 	ollama pull nomic-embed-text
 
 .bin/keto:
