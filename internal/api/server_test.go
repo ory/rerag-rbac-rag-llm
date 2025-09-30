@@ -743,6 +743,7 @@ func verifyUpsertResult(t *testing.T, vectorStore *MockVectorStore, docID string
 	}
 	if finalDoc == nil {
 		t.Fatal("Updated document not found")
+		return
 	}
 	if finalDoc.Title != "Updated Title" {
 		t.Errorf("Expected updated title 'Updated Title', got '%s'", finalDoc.Title)
