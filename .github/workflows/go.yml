@@ -133,6 +133,9 @@ jobs:
           sleep 1
         done
 
+        # Setup permissions and load documents
+        make setup
+
         # Run demo
         make demo
 

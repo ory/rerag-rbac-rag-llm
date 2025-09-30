@@ -99,12 +99,14 @@ start-keto:
 start-app: build
 	.bin/server
 
-# Run interactive demo
-demo:
+setup:
 	@echo "Setting up permissions..."
 	./demo/setup_keto_permissions.sh
 	@echo "Loading sample documents..."
 	./demo/load_documents.sh
+
+# Run interactive demo
+demo: setup
 	@echo "Starting interactive demo..."
 	@./demo/demo.sh
 
