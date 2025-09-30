@@ -48,8 +48,7 @@ install-ollama:
 	ollama pull llama3.2:1b
 	ollama pull nomic-embed-text
 
-# Install Keto binary
-install-keto:
+.bin/keto:
 	@echo "Installing Keto..."
 	@mkdir -p .bin
 	@if [ ! -f .bin/keto ]; then \
@@ -58,6 +57,10 @@ install-keto:
 		echo "Keto already installed"; \
 	fi
 	@chmod +x .bin/keto
+	@touch .bin/keto
+
+# Install Keto binary
+install-keto: .bin/keto
 
 # Download and tidy Go modules
 deps:
@@ -66,44 +69,42 @@ deps:
 
 # Build the application
 build: deps
-	@mkdir -p bin
-	go build -o bin/server .
+	@mkdir -p .bin
+	go build -o .bin/server .
 
 # Run the application
 run: build
-	./bin/server
+	.bin/server
 
 # Start development environment with tmux
-dev:
+dev: reset install build
 	@if ! command -v tmux >/dev/null 2>&1; then \
 		echo "tmux not found. Install tmux or use 'make start-keto' and 'make start-app' in separate terminals"; \
 		exit 1; \
 	fi
+	@mkdir -p data
+	tmux kill-session -t rag-demo || true
 	tmux new-session -d -s rag-demo -n main
 	tmux split-window -h -t rag-demo:main
 	tmux send-keys -t rag-demo:main.left 'make start-keto' Enter
-	tmux send-keys -t rag-demo:main.right 'sleep 5 && make start-app' Enter
+	tmux send-keys -t rag-demo:main.right 'make start-app' Enter
 	tmux attach-session -t rag-demo
 
 # Start Keto server
 start-keto:
-	@mkdir -p data
-	./.bin/keto migrate up --yes --config keto/config.yml
-	./.bin/keto serve all --config keto/config.yml
+	.bin/keto migrate up --yes --config keto/config.yml
+	.bin/keto serve all --config keto/config.yml
 
 # Start the application server
 start-app: build
-	./bin/server
+	.bin/server
 
-# Setup permissions and load documents
-setup:
+# Run interactive demo
+demo:
 	@echo "Setting up permissions..."
 	./demo/setup_keto_permissions.sh
 	@echo "Loading sample documents..."
 	./demo/load_documents.sh
-
-# Run interactive demo
-demo:
 	@echo "Starting interactive demo..."
 	@./demo/demo.sh
 
@@ -132,7 +133,7 @@ test:
 # Clean build artifacts
 clean:
 	go clean
-	rm -rf bin/
+	rm -rf .bin/
 
 # Full reset
 reset: clean
