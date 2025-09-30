@@ -44,9 +44,6 @@ install-ollama:
 	else \
 		echo "Ollama already installed"; \
 	fi
-	@$(MAKE) install-ollama-models
-
-install-ollama-models:
 	@echo "Pulling required models..."
 	ollama pull llama3.2:1b
 	ollama pull nomic-embed-text

@@ -69,7 +69,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.22'
+        go-version: '1.25'
 
     - name: Cache Keto installation
       uses: actions/cache@v4
@@ -77,7 +77,7 @@ jobs:
         path: ./.bin
         key: keto-install-${{ runner.os }}-v0.14.0
 
-    - name: Install dependencies
+    - name: Install dependencies and build binaries
       run: |
         # Install required system packages
         sudo apt-get install -y jq curl
@@ -85,7 +85,6 @@ jobs:
         make install-keto
         make deps
         make build
-
     - name: Setup Ollama models
       run: |
         # Wait for Ollama to be ready
@@ -98,8 +97,16 @@ jobs:
           sleep 1
         done
 
-        # Pull required models
-        make install-ollama-models
+        # Get the Ollama container ID
+        OLLAMA_CONTAINER=$(docker ps --filter "ancestor=ollama/ollama:latest" --format "{{.ID}}" | head -1)
+        echo "Ollama container: $OLLAMA_CONTAINER"
+
+        # Pull required models using docker exec
+        echo "Pulling nomic-embed-text model..."
+        docker exec $OLLAMA_CONTAINER ollama pull nomic-embed-text
+
+        echo "Pulling llama3.2:1b model..."
+        docker exec $OLLAMA_CONTAINER ollama pull llama3.2:1b
 
         # Check if Ollama is working
         curl -sS -X POST http://127.0.0.1:11434/api/generate \
