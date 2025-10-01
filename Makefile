@@ -86,11 +86,12 @@ run: build
 	.bin/server
 
 # Start development environment with tmux
-dev: reset install build
+dev: build
 	@if ! command -v tmux >/dev/null 2>&1; then \
 		echo "tmux not found. Install tmux or use 'make start-keto' and 'make start-app' in separate terminals"; \
 		exit 1; \
 	fi
+	rm -rf data/*.db
 	@mkdir -p data
 	tmux kill-session -t rag-demo || true
 	tmux new-session -d -s rag-demo -n main
@@ -150,7 +151,7 @@ clean:
 
 # Full reset
 reset: clean stop-ollama
-	rm -rf .bin/ data/
+	rm -rf .bin/ data/*.db
 	@echo "Full reset complete"
 
 # Lint code
