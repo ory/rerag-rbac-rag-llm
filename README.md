@@ -48,9 +48,10 @@ leak it.
 
 ## Quick demo
 
-Please have [Ollama v0.12+](https://ollama.com) installed and running as well as
-[Golang](https://go.dev) and ideally
-[tmux](https://github.com/tmux/tmux/wiki/Installing).
+Prerequisites:
+- [Docker](https://www.docker.com/get-started) (for Ollama)
+- [Golang](https://go.dev) (1.22+)
+- [tmux](https://github.com/tmux/tmux/wiki/Installing) (optional, for `make dev`)
 
 First clone the repository:
 
@@ -59,26 +60,20 @@ git clone https://github.com/ory/rerag-rbac-rag-llm.git
 cd rerag-rbac-rag-llm
 ```
 
-Ensure you have an up-to-date Ollama version. This demo was tested with 0.12.x:
-
-```bash
-ollama -v
-> ollama version is 0.12.1
-```
-
 Then run the demo:
 
 ```bash
-# See it in action (requires Go with CGO, tmux, curl)
+# Install dependencies (starts Ollama via Docker, installs Keto, pulls models)
 make install
 
-# If you have tmux:
+# If you have tmux (starts Keto and app in split panes):
 make dev
 
-# If you do not have tmux:
-make start-app
-make start-keto
+# If you do not have tmux (run in separate terminals):
+make start-keto  # Terminal 1
+make start-app   # Terminal 2
 
+# Setup and run demo
 make demo
 ```
 
@@ -91,10 +86,13 @@ Ensure you have a C compiler installed:
 
 This will:
 
-1. Install dependencies
-2. Start services
-3. Load demo documents
-4. Run permission-aware queries showing different results per user
+1. Start Ollama via Docker and pull required models (llama3.2:1b, nomic-embed-text)
+2. Install Keto and Go dependencies
+3. Start Keto and the application server
+4. Load demo documents
+5. Run permission-aware queries showing different results per user
+
+The Ollama container runs as `rerag-ollama` on port 11434. To stop it, run `make reset`.
 
 See `config.example.yaml` for all configuration options.
 
@@ -119,13 +117,14 @@ All open source, runs locally:
 
 - **[Ory Keto](https://www.ory.sh/keto/)**: Google Zanzibar-based ReBAC for
   permissions
-- **[Ollama](https://ollama.ai/)**: Local LLM runner (`gemma3:1b` for inference,
-  nomic for embeddings)
+- **[Ollama](https://ollama.ai/)**: Local LLM runner via Docker (`llama3.2:1b` for inference,
+  nomic-embed-text for embeddings)
 - **[SQLite](https://www.sqlite.org/)**: Persistent vector storage with optional
   encryption
 - **[sqlite-vec](https://github.com/asg017/sqlite-vec)**: Fast vector similarity
   search directly in SQLite using KNN
 - **Go**: For performance and hackability (requires CGO for sqlite-vec)
+- **Docker**: For running Ollama in a container
 - **TLS/HTTPS**: Optional SSL encryption for secure transport
 
 ## How it works
@@ -445,16 +444,18 @@ The GitHub Actions workflow includes optimizations for faster CI runs:
 
 ## Common issues
 
-| Problem                   | Solution                                                      |
-| ------------------------- | ------------------------------------------------------------- |
-| Ollama connection refused | Run `ollama serve`                                            |
-| Models missing            | Run `ollama pull llama3.2:1b && ollama pull nomic-embed-text` |
-| Keto not running          | Check with `curl localhost:4467/health/ready`                 |
-| TLS certificate errors    | Check cert file paths and permissions                         |
-| Database encryption fails | Verify encryption key and SQLite encryption support           |
-| Config validation errors  | Check required fields when features are enabled               |
-| CGO build errors          | Ensure C compiler is installed (see requirements above)       |
-| sqlite-vec not found      | Run `go mod tidy` and ensure CGO is enabled                   |
+| Problem                   | Solution                                                                     |
+| ------------------------- | ---------------------------------------------------------------------------- |
+| Ollama connection refused | Run `make install-ollama` or `docker start rerag-ollama`                    |
+| Models missing            | Run `docker exec rerag-ollama ollama pull llama3.2:1b nomic-embed-text`     |
+| Keto not running          | Check with `curl localhost:4467/health/ready`                                |
+| Docker not found          | Install Docker from https://www.docker.com/get-started                       |
+| Port 11434 in use         | Stop other Ollama instances: `docker stop rerag-ollama`                      |
+| TLS certificate errors    | Check cert file paths and permissions                                        |
+| Database encryption fails | Verify encryption key and SQLite encryption support                          |
+| Config validation errors  | Check required fields when features are enabled                              |
+| CGO build errors          | Ensure C compiler is installed (see requirements above)                      |
+| sqlite-vec not found      | Run `go mod tidy` and ensure CGO is enabled                                  |
 
 ## Contributing
 

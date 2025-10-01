@@ -1,4 +1,4 @@
-.PHONY: help install deps clean build run dev start-keto start-app setup test reset format demo quick-start
+.PHONY: help install deps clean build run dev start-keto start-app setup test reset format demo quick-start stop-ollama
 
 # Default target
 help:
@@ -30,23 +30,32 @@ help:
 	@echo "  run         - Build and run the server"
 	@echo "  clean       - Clean build artifacts"
 	@echo "  reset       - Full reset (clean + remove all data)"
+	@echo "  stop-ollama - Stop and remove Ollama Docker container"
 	@echo ""
 
 # Install all dependencies
 install: install-ollama install-keto deps
 	@echo "All dependencies installed successfully!"
 
-# Install Ollama and models
+# Install Ollama via Docker and pull models
 install-ollama:
-	@echo "Installing Ollama..."
-	@if ! command -v ollama >/dev/null 2>&1; then \
-		curl -fsSL https://ollama.ai/install.sh | sh; \
+	@echo "Starting Ollama via Docker..."
+	@if ! docker ps | grep -q rerag-ollama; then \
+		docker run -d --name rerag-ollama -p 11434:11434 ollama/ollama:latest; \
+		echo "Waiting for Ollama to start..."; \
+		for i in {1..30}; do \
+			if curl -s http://localhost:11434/api/version >/dev/null 2>&1; then \
+				echo "Ollama is ready"; \
+				break; \
+			fi; \
+			sleep 1; \
+		done; \
 	else \
-		echo "Ollama already installed"; \
+		echo "Ollama container already running"; \
 	fi
 	@echo "Pulling required models..."
-	ollama pull llama3.2:1b
-	ollama pull nomic-embed-text
+	docker exec rerag-ollama ollama pull llama3.2:1b
+	docker exec rerag-ollama ollama pull nomic-embed-text
 
 .bin/keto:
 	@echo "Installing Keto..."
@@ -77,11 +86,12 @@ run: build
 	.bin/server
 
 # Start development environment with tmux
-dev: reset install build
+dev: build
 	@if ! command -v tmux >/dev/null 2>&1; then \
 		echo "tmux not found. Install tmux or use 'make start-keto' and 'make start-app' in separate terminals"; \
 		exit 1; \
 	fi
+	rm -rf data/*.db
 	@mkdir -p data
 	tmux kill-session -t rag-demo || true
 	tmux new-session -d -s rag-demo -n main
@@ -140,8 +150,8 @@ clean:
 	rm -rf .bin/
 
 # Full reset
-reset: clean
-	rm -rf .bin/ data/
+reset: clean stop-ollama
+	rm -rf .bin/ data/*.db
 	@echo "Full reset complete"
 
 # Lint code
@@ -165,3 +175,9 @@ format:
 	fi
 	@echo "Formatting Markdown files..."
 	@npx prettier --write "**/*.md" 2>/dev/null || echo "Prettier not available, skipping markdown formatting"
+
+# Stop Ollama container
+stop-ollama:
+	@docker stop rerag-ollama 2>/dev/null || true
+	@docker rm rerag-ollama 2>/dev/null || true
+	@echo "Ollama container stopped"

@@ -112,7 +112,7 @@ The system uses ReBAC with three test users:
 
 ### External Services
 
-- **Ollama** (localhost:11434): LLM and embeddings
+- **Ollama** (localhost:11434): LLM and embeddings (runs via Docker as `rerag-ollama`)
 - **Ory Keto** (localhost:4466/4467): Permission management
 
 ## Common Tasks & Prompts
@@ -195,7 +195,7 @@ Always test with different user contexts:
 2. **Storage**: SQLite-based vector store with sqlite-vec - data persists across
    restarts
 3. **Embedding Model**: Requires Ollama with nomic-embed-text model pulled
-4. **LLM Model**: Requires Ollama with gemma3:1b model pulled (uses
+4. **LLM Model**: Requires Ollama with llama3.2:1b model pulled (uses
    temperature=0 for deterministic output)
 5. **CGO Required**: sqlite-vec requires CGO_ENABLED=1 and a C compiler
 6. **Vector Search**: Uses adaptive recursive search that dynamically adjusts
@@ -222,27 +222,25 @@ Always test with different user contexts:
 
 ## CI/CD Optimizations
 
-The GitHub Actions workflow uses comprehensive caching to speed up CI builds:
+The GitHub Actions workflow uses Docker for Ollama and caching for Keto:
 
-- **Ollama Installation Caching**: Binary and models cached in `~/.ollama` and
-  `/usr/local/bin/ollama`
-- **Keto Installation Caching**: Binary cached in `/usr/local/bin/keto`
-  (v0.14.0)
+- **Ollama via Docker**: Uses `ollama/ollama:latest` as a service container
+- **Keto Installation Caching**: Binary cached in `./.bin/keto` (v0.14.0)
 - **No apt-get update**: Skip package index updates for faster dependency
   installation
-- **Conditional Installation**: Only download/install if not cached
-- **Performance**: ~3-4 minutes for first run, ~30-60 seconds for fully cached
-  runs
+- **Conditional Installation**: Only download/install Keto if not cached
+- **Performance**: ~3-4 minutes for first run with model pulls, ~1-2 minutes for cached runs
 
 ## Common Issues & Solutions
 
-| Issue                     | Solution                                           |
-| ------------------------- | -------------------------------------------------- |
-| Ollama connection refused | Ensure Ollama is running: `ollama serve`           |
-| Keto permission denied    | Check Keto is running: `make start-keto`           |
-| Tests failing             | Run `make deps` to ensure dependencies are updated |
-| Embedding errors          | Pull the model: `ollama pull nomic-embed-text`     |
-| LLM errors                | Pull the model: `ollama pull gemma3:1b`            |
+| Issue                     | Solution                                                                |
+| ------------------------- | ----------------------------------------------------------------------- |
+| Ollama connection refused | Ensure Docker container is running: `docker start rerag-ollama`        |
+| Keto permission denied    | Check Keto is running: `make start-keto`                                |
+| Tests failing             | Run `make deps` to ensure dependencies are updated                      |
+| Embedding errors          | Pull the model: `docker exec rerag-ollama ollama pull nomic-embed-text` |
+| LLM errors                | Pull the model: `docker exec rerag-ollama ollama pull llama3.2:1b`     |
+| Docker not found          | Install Docker: https://www.docker.com/get-started                      |
 
 ## When Working with Claude
 
