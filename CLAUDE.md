@@ -195,7 +195,7 @@ Always test with different user contexts:
 2. **Storage**: SQLite-based vector store with sqlite-vec - data persists across
    restarts
 3. **Embedding Model**: Requires Ollama with nomic-embed-text model pulled
-4. **LLM Model**: Requires Ollama with gemma3:1b model pulled (uses
+4. **LLM Model**: Requires Ollama with llama3.2:1b model pulled (uses
    temperature=0 for deterministic output)
 5. **CGO Required**: sqlite-vec requires CGO_ENABLED=1 and a C compiler
 6. **Vector Search**: Uses adaptive recursive search that dynamically adjusts
