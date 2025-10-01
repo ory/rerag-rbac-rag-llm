@@ -112,7 +112,8 @@ The system uses ReBAC with three test users:
 
 ### External Services
 
-- **Ollama** (localhost:11434): LLM and embeddings (runs via Docker as `rerag-ollama`)
+- **Ollama** (localhost:11434): LLM and embeddings (runs via Docker as
+  `rerag-ollama`)
 - **Ory Keto** (localhost:4466/4467): Permission management
 
 ## Common Tasks & Prompts
@@ -229,17 +230,18 @@ The GitHub Actions workflow uses Docker for Ollama and caching for Keto:
 - **No apt-get update**: Skip package index updates for faster dependency
   installation
 - **Conditional Installation**: Only download/install Keto if not cached
-- **Performance**: ~3-4 minutes for first run with model pulls, ~1-2 minutes for cached runs
+- **Performance**: ~3-4 minutes for first run with model pulls, ~1-2 minutes for
+  cached runs
 
 ## Common Issues & Solutions
 
 | Issue                     | Solution                                                                |
 | ------------------------- | ----------------------------------------------------------------------- |
-| Ollama connection refused | Ensure Docker container is running: `docker start rerag-ollama`        |
+| Ollama connection refused | Ensure Docker container is running: `docker start rerag-ollama`         |
 | Keto permission denied    | Check Keto is running: `make start-keto`                                |
 | Tests failing             | Run `make deps` to ensure dependencies are updated                      |
 | Embedding errors          | Pull the model: `docker exec rerag-ollama ollama pull nomic-embed-text` |
-| LLM errors                | Pull the model: `docker exec rerag-ollama ollama pull llama3.2:1b`     |
+| LLM errors                | Pull the model: `docker exec rerag-ollama ollama pull llama3.2:1b`      |
 | Docker not found          | Install Docker: https://www.docker.com/get-started                      |
 
 ## When Working with Claude
